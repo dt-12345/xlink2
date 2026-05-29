@@ -29,10 +29,12 @@ auto UsernameDatabase::loadFromFile(std::string_view path) -> void {
     }
 }
 
-auto UsernameDatabase::add(std::string_view name) -> void {
+auto UsernameDatabase::add(std::string_view name, bool ignoreCollisions) -> void {
     const auto hash = common::CalcCRC32(name);
     if (const auto it = mUsernames.find(hash); it != mUsernames.end()) {
-        common::AbortWithDetail("Hash collision between \"{}\" and \"{}\"", it->second, name);
+        if (!ignoreCollisions) {
+            common::AbortWithDetail("Hash collision between \"{}\" and \"{}\"", it->second, name);
+        }
     }
     mUsernames.emplace(common::CalcCRC32(name), name);
 }

@@ -794,7 +794,6 @@ static auto ProcessParamDefineTable(const ParamDefineTable& pdt, SaveContext& ct
     }
 }
 
-// we process all 
 static auto ProcessAssetCallTable(
     const AssetCallTableHandle& act,
     UserContext& uctx,
@@ -849,6 +848,9 @@ static auto ProcessAssetCallTable(
                 }
                 break;
             case CallTableType::BlendBy: {
+                if (GetResContainerParamLayout(ctx.game) < 1) {
+                    common::AbortWithDetail("Blend by containers are not supported on this version!");
+                }
                 uctx.currentContainerOffset += SizeOf<xlink2::ResSwitchContainerParam>(ctx.game);
                 const auto blend = static_cast<const BlendBy*>(act.get());
                 if (blend->getBlendPropertyScope() == PropertyScope::Global) {
@@ -930,6 +932,9 @@ static auto ProcessAssetCallTable(
 }
 
 static auto ProcessUser(const User& user, SaveContext& ctx) -> void {
+    if (user.hasKnownName()) {
+        ctx.getOrAddString(user.getName());
+    }
     auto& uctx = ctx.users.emplace(user.getHash(), UserContext{ std::cref(user) }).first->second;
     uctx.offset = ctx.totalUserSize;
     uctx.totalSize = SizeOf<xlink2::ResUserHeader>(ctx.game);
@@ -1967,7 +1972,7 @@ auto Database::save(Game game, Platform platform) const -> std::vector<std::uint
     for (const auto& user : mUsers) {
         if (user->getParams().size() != mParamDefineTable->getNumUserParams()) {
             common::AbortWithDetail(
-                "User {:#010x} is does not have the expected number of user params! {} vs. {}",
+                "User {:#010x} does not have the expected number of user params! {} vs. {}",
                 user->getHash(), user->getParams().size(), mParamDefineTable->getNumUserParams()
             );
         }

@@ -15,6 +15,7 @@
 #include "db/db.hpp"
 #include "db/pdt.hpp"
 #include "db/user.hpp"
+#include "db/username.hpp"
 #include "db/version.hpp"
 #include "res/act.hpp"
 #include "res/action.hpp"
@@ -1519,6 +1520,13 @@ auto Database::load(std::span<const std::uint8_t> data, Game game, Platform plat
         ctx.reader.seek(userOffsets[i]);
         LoadUser(*user, ctx, getParamDefineTable());
     }
+
+    auto nameDb = UsernameDatabase();
+    for (auto& str : ctx.nameTable | std::views::values) {
+        nameDb.add(str, true);
+    }
+
+    resolveUsernames(nameDb);
 }
 
 } // namespace mango
