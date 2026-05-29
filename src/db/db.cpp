@@ -54,9 +54,9 @@ auto Database::reset() -> void {
     mUsers.clear();
 }
 
-auto Database::resolveUsernames(const UsernameDatabase& names) -> void {
+auto Database::resolveUsernames(const UsernameDatabase& names, bool overwriteOld) -> void {
     for (auto& user : mUsers) {
-        if (user->hasKnownName()) {
+        if (!overwriteOld && user->hasKnownName()) {
             continue;
         }
         const auto res = names.query(user->getHash());

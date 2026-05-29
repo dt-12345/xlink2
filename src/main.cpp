@@ -221,7 +221,7 @@ auto main(int argc, const char** argv) -> int {
     }
 
     if (!state.nameDbPath.empty()) {
-        db.resolveUsernames(mango::UsernameDatabase(state.nameDbPath));
+        db.resolveUsernames(mango::UsernameDatabase(state.nameDbPath), true); // prioritize user-provided names
     }
 
 #ifdef XLINK_DEBUG

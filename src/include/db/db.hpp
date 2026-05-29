@@ -51,7 +51,7 @@ public:
 
     auto reset() -> void;
 
-    auto resolveUsernames(const UsernameDatabase& names) -> void;
+    auto resolveUsernames(const UsernameDatabase& names, bool overwriteOld = false) -> void;
 
 private:
     std::unique_ptr<ParamDefineTable> mParamDefineTable;
