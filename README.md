@@ -122,7 +122,7 @@ Users {
 
 ### Metadata
 
-This is metadata that you can be ignored.
+This is metadata that can be ignored.
 
 ### ParamDefines
 

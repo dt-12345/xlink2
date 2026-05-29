@@ -1096,11 +1096,7 @@ static auto ParseActionTrigger(ActionTrigger& trigger, Lexer& lexer, std::vector
     }
 }
 
-static auto ParseActionTriggers(
-    std::vector<ActionTrigger>& triggers,
-    Lexer& lexer,
-    std::vector<std::uint32_t>& info
-) -> void {
+static auto ParseActionTriggers(std::vector<ActionTrigger>& triggers, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "ActionTriggers");
     for (auto guid = scope.get(); scope; guid = scope.get()) {
         if (guid.type != Token::IntegerHex) {
@@ -1193,7 +1189,7 @@ static auto ParseSwitchCondition(SwitchCondition& cond, Lexer& lexer, std::strin
     if (const auto token = lexer.next(); token.type == Token::Identifier && token.value == "_") {
         cond.setCompareType(CompareType::Default);
         return;
-    } else  if (token.type != Token::LessThan) {
+    } else if (token.type != Token::LessThan) {
         SyntaxError(lexer, token, "Expected <value>");
     }
 
@@ -1278,11 +1274,7 @@ static auto ParseSwitchCondition(SwitchCondition& cond, Lexer& lexer, std::strin
     }
 }
 
-static auto ParsePropertyTriggers(
-    Property& prop,
-    Lexer& lexer,
-    std::vector<std::uint32_t>& info
-) -> void {
+static auto ParsePropertyTriggers(Property& prop, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "PropertyTriggers");
     for (auto token = scope.get(); scope; token = scope.get()) {
         if (token.type != Token::Identifier || token.value != "if") {
@@ -1357,11 +1349,7 @@ static auto ParseAlwaysTrigger(AlwaysTrigger& trigger, Lexer& lexer, std::vector
     }
 }
 
-static auto ParseAlwaysTriggers(
-    std::vector<AlwaysTrigger>& triggers,
-    Lexer& lexer,
-    std::vector<std::uint32_t>& info
-) -> void {
+static auto ParseAlwaysTriggers(std::vector<AlwaysTrigger>& triggers, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "AlwaysTriggers");
     for (auto token = scope.get(); scope; token = scope.get()) {
         auto& trigger = triggers.emplace_back();
@@ -1411,7 +1399,13 @@ static auto ParseCallTableKey(Lexer& lexer) -> std::tuple<std::string, std::uint
 static auto ParseSwitchVariable(Lexer& lexer) -> std::pair<SwitchType, std::string> {
     const auto token = lexer.next();
     SwitchType type = SwitchType::Null;
-    if (token.type != Token::Identifier) {
+    if (token.type == Token::LessThan) {
+        if (const auto id = GetIdentifier(lexer); id == "null") {
+            EnsureToken(lexer, Token::GreaterThan);
+            return std::make_pair(SwitchType::Null, "");
+        }
+        SyntaxError(lexer, token, "Expected identifier for switch variable!");
+    } else if (token.type != Token::Identifier) {
         SyntaxError(lexer, token, "Expected identifier for switch variable!");
     }
     if (token.value == "Local") {
@@ -1420,8 +1414,6 @@ static auto ParseSwitchVariable(Lexer& lexer) -> std::pair<SwitchType, std::stri
         type = SwitchType::GlobalProperty;
     } else if (token.value == "ActionSlot") {
         type = SwitchType::ActionSlot;
-    } else if (token.value == "_") {
-        return std::make_pair(SwitchType::Null, "");
     } else {
         SyntaxError(lexer, token, "Unknown property scope!");
     }

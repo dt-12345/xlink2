@@ -241,7 +241,7 @@ auto main(int argc, const char** argv) -> int {
         if (origText == newDb.text()) {
             return 0;
         } else {
-            fmt::println(stderr, "NOT MATCHING\n");
+            fmt::println(stderr, "NOT MATCHING");
             return 1;
         }
     }
