@@ -195,3 +195,11 @@ AssetBitFlag: (I haven't looked at these in a while so I'm not sure how accurate
     - bit 4 = IsUnified
     - bit 5 = IsAutoOneTimeFade
     - bit 6 = IsForceLoopAsset
+
+## Building
+
+Requires CMake 3.18+ and gcc 16+
+```
+cmake -B build -DCMAKE_BUILD_TYPE=Release # -G "Ninja" or whatever if you want
+cmake --build build
+```
