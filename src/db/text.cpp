@@ -675,24 +675,32 @@ static auto WriteAssetCallTable(TextWriter& writer, const AssetCallTable& act, b
             const auto& grid = static_cast<const Grid&>(act);
             grid.ensureValidSize();
             const auto _ = writer.scope(true, "Execute = Grid ({}, {})", grid.getProperty1(), grid.getProperty2());
-            for (const auto [i, val1] : grid.getValues1() | std::views::enumerate) {
-                for (const auto [j, val2] : grid.getValues2() | std::views::enumerate) {
-                    const auto& child = grid.getAssetCallTables().at(i * grid.getValues2().size() + j);
-                    if (child) {
-                        writer.writeIndents();
-                        writer.write(
-                            "({}::{}, {}::{}) => ",
-                            QuotedString{ grid.getProperty1Name() }, QuotedString{ val1 },
-                            QuotedString{ grid.getProperty2Name() }, QuotedString{ val2 }
-                        );
-                        WriteAssetCallTable(writer, *child, false);
-                    } else {
-                        writer.writeLine(
-                            "({}::{}, {}::{}) => <null>",
-                            QuotedString{ grid.getProperty1Name() }, QuotedString{ val1 },
-                            QuotedString{ grid.getProperty2Name() }, QuotedString{ val2 }
-                        );
+            {
+                const auto _ = writer.scope("Cases");
+                for (const auto [i, val1] : grid.getValues1() | std::views::enumerate) {
+                    for (const auto [j, val2] : grid.getValues2() | std::views::enumerate) {
+                        const auto& child = grid.getAssetCallTables().at(i * grid.getValues2().size() + j);
+                        if (child) {
+                            writer.writeLine(
+                                "({}::{}, {}::{}) => {}",
+                                QuotedString{ grid.getProperty1Name() }, QuotedString{ val1 },
+                                QuotedString{ grid.getProperty2Name() }, QuotedString{ val2 },
+                                *child
+                            );
+                        } else {
+                            writer.writeLine(
+                                "({}::{}, {}::{}) => <null>",
+                                QuotedString{ grid.getProperty1Name() }, QuotedString{ val1 },
+                                QuotedString{ grid.getProperty2Name() }, QuotedString{ val2 }
+                            );
+                        }
                     }
+                }
+            }
+            {
+                const auto _ = writer.scope("Children");
+                for (const auto& child : grid.getChildren()) {
+                    WriteAssetCallTable(writer, *child, true);
                 }
             }
             break;

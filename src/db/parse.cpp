@@ -415,49 +415,47 @@ private:
                         error = !IsHexDigit(c);
                     } else if (foundBin) {
                         error = !IsBinDigit(c);
-                    } else {
-                        if (!IsDigit(c)) {
-                            if (foundExp || foundDot) {
-                                error = true;
-                            } else if (c == 'i' || c == 'I') {
-                                foundInf = true;
-                                if (hasSign) {
-                                    error = mCurrentPosition != start + 1;
-                                } else {
-                                    error = mCurrentPosition != start;
-                                }
-                            } else if (c == 'f' || c == 'F') {
-                                if (hasSign) {
-                                    error = mCurrentPosition != start + 3;
-                                } else {
-                                    error = mCurrentPosition != start + 2;
-                                }
-                                foundInf = foundInf && !error;
-                            } else if (c == 'a' || c == 'A') {
-                                if (hasSign) {
-                                    error = mCurrentPosition != start + 3;
-                                } else {
-                                    error = mCurrentPosition != start + 2;
-                                }
-                                foundNan = foundNan && !error;
-                            } else if (c == 'n' || c == 'N') {
-                                // with nan or inf, n can be in any of the first three spots but the other checks will fail if it's neither nan nor inf
-                                if (hasSign) {
-                                    foundInf = foundInf && mCurrentPosition == start + 2;
-                                    foundNan = (mCurrentPosition == start + 1) ? true : (mCurrentPosition == start + 3);
-                                    error = mCurrentPosition > start + 3;
-                                } else {
-                                    foundInf = foundInf && mCurrentPosition == start + 1;
-                                    foundNan = mCurrentPosition == start ? true : (mCurrentPosition == start + 2);
-                                    error = mCurrentPosition > start + 2;
-                                }
+                    } else if (!IsDigit(c)) {
+                        if (foundExp || foundDot) {
+                            error = true;
+                        } else if (c == 'i' || c == 'I') {
+                            foundInf = true;
+                            if (hasSign) {
+                                error = mCurrentPosition != start + 1;
                             } else {
-                                error = true;
+                                error = mCurrentPosition != start;
+                            }
+                        } else if (c == 'f' || c == 'F') {
+                            if (hasSign) {
+                                error = !foundInf && mCurrentPosition != start + 3;
+                            } else {
+                                error = !foundInf && mCurrentPosition != start + 2;
+                            }
+                            foundInf = foundInf && !error;
+                        } else if (c == 'a' || c == 'A') {
+                            if (hasSign) {
+                                error = !foundNan && mCurrentPosition != start + 3;
+                            } else {
+                                error = !foundNan && mCurrentPosition != start + 2;
+                            }
+                            foundNan = foundNan && !error;
+                        } else if (c == 'n' || c == 'N') {
+                            // with nan or inf, n can be in any of the first three spots but the other checks will fail if it's neither nan nor inf
+                            if (hasSign) {
+                                foundInf = foundInf && mCurrentPosition == start + 2;
+                                foundNan = (mCurrentPosition == start + 1) ? true : (mCurrentPosition == start + 3);
+                                error = mCurrentPosition > start + 3;
+                            } else {
+                                foundInf = foundInf && mCurrentPosition == start + 1;
+                                foundNan = mCurrentPosition == start ? true : (mCurrentPosition == start + 2);
+                                error = mCurrentPosition > start + 2;
                             }
                         } else {
-                            if (foundNan && foundInf) {
-                                error = true;
-                            }
+                            error = true;
+                        }
+                    } else {
+                        if (foundNan || foundInf) {
+                            error = true;
                         }
                     }
             }
@@ -466,6 +464,8 @@ private:
 
         if (foundInf || foundNan) {
             if (mCurrentPosition - start != (hasSign ? 4 : 3)) {
+                error = true;
+            } else if (foundInf && foundNan) {
                 error = true;
             }
         }
@@ -1037,9 +1037,7 @@ static auto ParseParams(std::vector<Param>& params, Lexer& lexer) -> void {
 static auto ParseLocalProperties(std::set<std::string>& props, Lexer& lexer) -> void {
     auto scope = Scope(lexer, "Properties");
     for (auto prop = scope.get(); scope; prop = scope.get()) {
-        if (prop.type == Token::Identifier) {
-            props.emplace(prop.value);
-        } else if (prop.type == Token::String) {
+        if (prop.type == Token::String) {
             props.emplace(Unescape(prop.value));
         } else if (HasValue(prop.type)) {
             props.emplace(prop.value);
@@ -1079,7 +1077,7 @@ static auto ParseActionTrigger(ActionTrigger& trigger, Lexer& lexer, std::vector
             }
             foundAsset = true;
             const auto keyname = lexer.next();
-            if (keyname.type != Token::Identifier && keyname.type != Token::String) {
+            if (!HasValue(keyname.type)) {
                 SyntaxError(lexer, keyname, "Invalid asset call table name!");
             }
             EnsureToken(lexer, Token::BracketOpen);
@@ -1113,10 +1111,10 @@ static auto ParseActions(std::vector<Action>& actions, Lexer& lexer, std::vector
     auto scope = Scope(lexer, "Actions");
     auto isPrefix = false;
     for (auto action = scope.get(); scope; action = scope.get()) {
-        if (action.type == Token::Identifier) {
-            actions.emplace_back(action.value);
-        } else if (action.type == Token::String) {
+        if (action.type == Token::String) {
             actions.emplace_back(Unescape(action.value));
+        } else if (HasValue(action.type)) {
+            actions.emplace_back(action.value);
         } else if (action.type == Token::At) {
             const auto key = GetIdentifier(lexer);
             if (key == "Prefix") {
@@ -1136,10 +1134,10 @@ static auto ParseActions(std::vector<Action>& actions, Lexer& lexer, std::vector
 static auto ParseActionSlots(std::vector<ActionSlot>& slots, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "ActionSlots");
     for (auto slot = scope.get(); scope; slot = scope.get()) {
-        if (slot.type == Token::Identifier) {
-            slots.emplace_back(slot.value);
-        } else if (slot.type == Token::String) {
+        if (slot.type == Token::String) {
             slots.emplace_back(Unescape(slot.value));
+        } else if (HasValue(slot.type)) {
+            slots.emplace_back(slot.value);
         } else {
             SyntaxError(lexer, slot, "Failed to parse action slot name!");
         }
@@ -1168,7 +1166,7 @@ static auto ParsePropertyTrigger(PropertyTrigger& trigger, Lexer& lexer, std::ve
             }
             foundAsset = true;
             const auto keyname = lexer.next();
-            if (keyname.type != Token::Identifier && keyname.type != Token::String) {
+            if (!HasValue(keyname.type)) {
                 SyntaxError(lexer, keyname, "Invalid asset call table name!");
             }
             EnsureToken(lexer, Token::BracketOpen);
@@ -1332,7 +1330,7 @@ static auto ParseAlwaysTrigger(AlwaysTrigger& trigger, Lexer& lexer, std::vector
             }
             foundAsset = true;
             const auto keyname = lexer.next();
-            if (keyname.type != Token::Identifier && keyname.type != Token::String) {
+            if (!HasValue(keyname.type)) {
                 SyntaxError(lexer, keyname, "Invalid asset call table name!");
             }
             EnsureToken(lexer, Token::BracketOpen);
@@ -1449,6 +1447,66 @@ static auto ParseBlendByCondition(Lexer& lexer, const char* type) -> std::pair<f
     }
     EnsureToken(lexer, Token::BracketClose);
     return std::make_pair(value, op);
+}
+
+static auto ParseGridCases(
+    Grid& grid,
+    Lexer& lexer,
+    std::unordered_map<std::string, std::uint32_t>& gridMapping
+) -> void {
+    auto scope = Scope(lexer, "GridCases");
+    for (auto token = scope.get(); scope; token = scope.get()) {
+        if (token.type != Token::ParenthesisOpen) {
+            SyntaxError(lexer, token, "Expected opening parenthesis for grid condition");
+        }
+        const auto [name1, val1] = ParseEnumValue(lexer);
+        EnsureToken(lexer, Token::Comma);
+        const auto [name2, val2] = ParseEnumValue(lexer);
+        EnsureToken(lexer, Token::ParenthesisClose);
+        if (name1 != grid.getProperty1Name() || name2 != grid.getProperty2Name()) {
+            SyntaxError(lexer, token, "Grid value condition does not match name of variable!");
+        }
+        if (const auto res = std::find(grid.getValues1().begin(), grid.getValues1().end(), val1); res == grid.getValues1().end()) {
+            grid.getValues1().push_back(val1);
+        }
+        if (const auto res = std::find(grid.getValues2().begin(), grid.getValues2().end(), val2); res == grid.getValues2().end()) {
+            grid.getValues2().push_back(val2);
+        }
+        EnsureToken(lexer, Token::Arrow);
+        const auto [keyname, guid, null] = ParseCallTableKey(lexer);
+        if (null) {
+            continue;
+        }
+        gridMapping.emplace(val1 + val2, guid);
+    }
+}
+
+static auto ParseGridChildren(
+    std::unordered_map<std::uint32_t, AssetCallTableHandle>& children,
+    Lexer& lexer,
+    std::unordered_map<std::uint32_t, AssetCallTableHandle>& callTables,
+    std::vector<std::pair<std::reference_wrapper<AssetCallTableHandle>, std::uint32_t>>& deferred
+) -> void {
+    auto scope = Scope(lexer, "GridChildren");
+    for (auto key = scope.get(); scope; key = scope.get()) {
+        std::string keyname;
+        if (key.type == Token::String) {
+            keyname = Unescape(key.value);
+        } else if (HasValue(key.type)) {
+            keyname = key.value;
+        } else {
+            SyntaxError(lexer, key, "Failed to parse asset call table keyname!");
+        }
+
+        EnsureToken(lexer, Token::BracketOpen);
+        const auto guid = GetUInt(lexer);
+        EnsureToken(lexer, Token::BracketClose);
+        if (auto res = ParseAssetCallTable(keyname, guid, lexer, callTables, deferred); res) {
+            children.emplace(res->getGUID(), res);
+        } else {
+            SyntaxError(lexer, key, "Grid container children cannot be declared without a body! {}[{:#010x}]", keyname, guid);
+        }
+    }
 }
 
 static auto ParseContainer(
@@ -1672,32 +1730,26 @@ static auto ParseContainer(
             auto gridMapping = std::unordered_map<std::string, std::uint32_t>{};
             auto children = std::unordered_map<std::uint32_t, AssetCallTableHandle>{};
             for (auto token = scope.get(); scope; token = scope.get()) {
-                if (token.type != Token::ParenthesisOpen) {
-                    SyntaxError(lexer, token, "Expected opening parenthesis for grid condition");
+                if (token.type != Token::Identifier) {
+                    SyntaxError(lexer, token, "Expected identifier for grid body! Either Cases or Children");
                 }
-                const auto [name1, val1] = ParseEnumValue(lexer);
-                EnsureToken(lexer, Token::Comma);
-                const auto [name2, val2] = ParseEnumValue(lexer);
-                EnsureToken(lexer, Token::ParenthesisClose);
-                if (name1 != grid.getProperty1Name() || name2 != grid.getProperty2Name()) {
-                    SyntaxError(lexer, token, "Grid value condition does not match name of variable!");
+
+                if (token.value == "Cases") {
+                    if (!gridMapping.empty()) {
+                        SyntaxError(lexer, token, "Redeclaration of grid cases!");
+                    }
+                    ParseGridCases(grid, lexer, gridMapping);
+                } else if (token.value == "Children") {
+                    if (!children.empty()) {
+                        SyntaxError(lexer, token, "Redeclaration of grid children!");
+                    }
+                    ParseGridChildren(children, lexer, callTables, deferred);
+                } else {
+                    SyntaxError(lexer, token, "Unknown grid attribute!");
                 }
-                if (const auto res = std::find(grid.getValues1().begin(), grid.getValues1().end(), val1); res == grid.getValues1().end()) {
-                    grid.getValues1().push_back(val1);
-                }
-                if (const auto res = std::find(grid.getValues2().begin(), grid.getValues2().end(), val2); res == grid.getValues2().end()) {
-                    grid.getValues2().push_back(val2);
-                }
-                EnsureToken(lexer, Token::Arrow);
-                const auto [keyname, guid, null] = ParseCallTableKey(lexer);
-                if (null) {
-                    continue;
-                }
-                if (auto res = ParseAssetCallTable(keyname, guid, lexer, callTables, deferred); res) {
-                    grid.addChild(res);
-                    children.emplace(guid, res);
-                }
-                gridMapping.emplace(val1 + val2, guid);
+            }
+            for (const auto& [_, child] : children) {
+                grid.addChild(child);
             }
             for (const auto& v1 : grid.getValues1()) {
                 for (const auto& v2 : grid.getValues2()) {
@@ -1834,10 +1886,10 @@ static auto ParseAssetCallTables(std::vector<AssetCallTableHandle>& assetCallTab
     auto deferred = std::vector<std::pair<std::reference_wrapper<AssetCallTableHandle>, std::uint32_t>>{};
     for (auto key = scope.get(); scope; key = scope.get()) {
         std::string keyname;
-        if (key.type == Token::Identifier) {
-            keyname = key.value;
-        } else if (key.type == Token::String) {
+        if (key.type == Token::String) {
             keyname = Unescape(key.value);
+        } else if (HasValue(key.type)) {
+            keyname = key.value;
         } else {
             SyntaxError(lexer, key, "Failed to parse asset call table keyname!");
         }
@@ -1932,10 +1984,10 @@ static auto ParseUsers(Database& db, Lexer& lexer) -> void {
             SyntaxError(lexer, hashOrName, "Expected user hash or name!");
         } else if (hashOrName.type == Token::IntegerHex) {
             user->setHash(ToU32(hashOrName.value, 16));
-        } else if (hashOrName.type == Token::Identifier) {
-            user->setName(hashOrName.value);
-        } else {
+        } else if (hashOrName.type == Token::String) {
             user->setName(Unescape(hashOrName.value));
+        } else {
+            user->setName(hashOrName.value);
         }
         ParseUser(*user, lexer);
         db.addUser(std::move(user));

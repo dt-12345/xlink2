@@ -39,7 +39,7 @@
 
 [[nodiscard]] static auto GetPlatform(std::string_view name) -> mango::Platform {
     if (name == "cafe") return mango::Platform::Cafe;
-    if (name == "ns") return mango::Platform::NX;
+    if (name == "nx") return mango::Platform::NX;
     if (name == "ounce") return mango::Platform::Ounce;
 
     fmt::println(stderr, "Failed to match platform: {}", name);
