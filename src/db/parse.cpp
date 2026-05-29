@@ -1616,7 +1616,7 @@ static auto ParseContainer(
                 std::string keyname;
                 if (token.type == Token::String) {
                     keyname = Unescape(token.value);
-                } else if (token.type == Token::Identifier) {
+                } else if (HasValue(token.type)) {
                     keyname = token.value;
                 } else if (token.type == Token::At) {
                     if (const auto id = GetIdentifier(lexer); id == "ContinueOnFade") {
