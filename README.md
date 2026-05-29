@@ -177,21 +177,21 @@ There are 8 types of containers with different functionality.
 - Sequence
   - Plays each child call table in sequence
 - Grid (Stardust and above)
-  - Selects on child call table based on the value of two properties
+  - Selects one child call table based on the value of two properties
 - Jump (EXKing and above)
   - Jumps to another call table outside of the current container
 
 ### Other Stuff I Need to Organize
 
 AssetBitFlag: (I haven't looked at these in a while so I'm not sure how accurate these are - they may also change by version, also why don't I have bit 0 smh)
-  ELink:
-    bit 1 = IsFollow
-    bit 2 = IsUseOneEmitter
-    bit 3 = IsForceLoopAsset
-  SLink:
-    bit 1 = IsNoParamUpdate
-    bit 2 = IsNoPos
-    bit 3 = IsStopWhenEmitterDestroying
-    bit 4 = IsUnified
-    bit 5 = IsAutoOneTimeFade
-    bit 6 = IsForceLoopAsset
+  - ELink:
+    - bit 1 = IsFollow
+    - bit 2 = IsUseOneEmitter
+    - bit 3 = IsForceLoopAsset
+  - SLink:
+    - bit 1 = IsNoParamUpdate
+    - bit 2 = IsNoPos
+    - bit 3 = IsStopWhenEmitterDestroying
+    - bit 4 = IsUnified
+    - bit 5 = IsAutoOneTimeFade
+    - bit 6 = IsForceLoopAsset
