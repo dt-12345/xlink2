@@ -1977,6 +1977,7 @@ static auto ParseUser(User& user, Lexer& lexer) -> void {
 
 static auto ParseUsers(Database& db, Lexer& lexer) -> void {
     auto scope = Scope(lexer, "Users");
+    auto seen = std::unordered_map<std::uint32_t, std::reference_wrapper<const User>>{};
     for (auto hashOrName = scope.get(); scope; hashOrName = scope.get()) {
         auto user = std::make_unique<User>();
         // TODO: should we support base 10 hashes as well?
@@ -1989,6 +1990,16 @@ static auto ParseUsers(Database& db, Lexer& lexer) -> void {
         } else {
             user->setName(hashOrName.value);
         }
+        const auto hash = user->getHash();
+        if (const auto res = seen.find(hash); res != seen.end()) {
+            const auto& existing = res->second.get();
+            common::AbortWithDetail(
+                "Username hash collision detected! {} ({:#010x}) and {} ({:#010x})",
+                existing.hasKnownName() ? existing.getName() : "<unknown>", existing.getHash(),
+                user->hasKnownName() ? user->getName() : "<unknown>", hash
+            );
+        }
+        seen.emplace(hash, std::cref(*user));
         ParseUser(*user, lexer);
         db.addUser(std::move(user));
     }
