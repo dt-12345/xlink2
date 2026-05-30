@@ -4,6 +4,8 @@ A tool for editing XLink2 database files used by many Nintendo EPD games. XLink2
 
 Note that this is still a WIP and there may be bugs. Feel free to report any you any come across.
 
+Huge thanks to [Shadow](https://github.com/shadowninja108/WoomLink) whose research served as a great starting point and reference.
+
 ## Basic Usage
 
 ```
