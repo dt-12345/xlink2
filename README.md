@@ -1,6 +1,6 @@
 # XLINK Tool
 
-A tool for editing XLink2 database files used by many Nintendo EPD games. XLink2 is a library used for managing the emission of VFX and sounds, combining the previously separate ELink and SLink libraries.
+A tool for editing XLink2 database files used by many Nintendo EPD games. XLink2 is a library used for managing the emission of VFX and sounds, combining the previously separate ELink and SLink libraries. Currently supports all Switch-era games, support for other versions may be added at a later date.
 
 Note that this is still a WIP and there may be bugs. Feel free to report any you any come across.
 
