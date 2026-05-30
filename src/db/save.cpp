@@ -671,7 +671,6 @@ struct AssetKey {
 
 struct UserContext {
     std::reference_wrapper<const User> user;
-    std::uint64_t offset = 0ull;
     std::vector<CallTableInfo> assetCallTables = {};
     std::unordered_map<std::uint32_t, std::size_t> indexMap = {};
     std::map<AssetKey, std::uint16_t> assetIds = {};
@@ -936,7 +935,6 @@ static auto ProcessUser(const User& user, SaveContext& ctx) -> void {
         ctx.getOrAddString(user.getName());
     }
     auto& uctx = ctx.users.emplace(user.getHash(), UserContext{ std::cref(user) }).first->second;
-    uctx.offset = ctx.totalUserSize;
     uctx.totalSize = SizeOf<xlink2::ResUserHeader>(ctx.game);
     for (const auto& prop : user.getLocalProperties()) {
         ctx.getOrAddString(prop);
@@ -2053,8 +2051,12 @@ auto Database::save(Game game, Platform platform) const -> std::vector<std::uint
         ctx.writer.write(hash);
     }
     ctx.writer.alignUp(ctx.getPtrSize());
-    for (const auto& user : ctx.users | std::views::values) {
-        ctx.writePtr(userTablePos + user.offset);
+    {
+        auto currentUserOffset = userTablePos;
+        for (const auto& user : ctx.users | std::views::values) {
+            ctx.writePtr(currentUserOffset);
+            currentUserOffset += user.totalSize;
+        }
     }
 
     ctx.writer.alignUp(ctx.getPtrSize());
