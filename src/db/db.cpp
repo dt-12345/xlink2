@@ -44,8 +44,8 @@ auto Database::parse(std::string_view path) -> void {
     parse(std::span{ reinterpret_cast<const char*>(data.data()), data.size() }, ParseDataTag{});
 }
 
-auto Database::text(std::string_view path) const -> void {
-    const auto data = text();
+auto Database::text(std::string_view path, bool useBraces) const -> void {
+    const auto data = text(useBraces);
     common::WriteFile(path, std::span{ reinterpret_cast<const std::uint8_t*>(data.data()), data.size() });
 }
 

@@ -264,7 +264,7 @@ namespace mango {
 
 class TextWriter {
 public:
-    explicit TextWriter(std::size_t bufferSize) : mBuffer(), mIndentLevel(0) {
+    explicit TextWriter(std::size_t bufferSize, bool useBraces = true) : mBuffer(), mIndentLevel(0), mUseBraces(useBraces) {
         mBuffer.reserve(bufferSize);
     }
 
@@ -339,10 +339,18 @@ public:
                 writer.writeIndents();
             }
             if (format.get().size() == 0) {
-                writer.write("{\n");
+                if (writer.mUseBraces) {
+                    writer.write("{\n");
+                } else {
+                    writer.write("\n");
+                }
             } else {
                 writer.write(format, std::forward<Ts>(args)...);
-                writer.write(" {\n");
+                if (writer.mUseBraces) {
+                    writer.write(" {\n");
+                } else {
+                    writer.write("\n");
+                }
             }
             ++writer.mIndentLevel;
         }
@@ -352,9 +360,17 @@ public:
                 writer.writeIndents();
             }
             if (name.empty()) {
-                writer.write("{\n");
+                if (writer.mUseBraces) {
+                    writer.write("{\n");
+                } else {
+                    writer.write("\n");
+                }
             } else {
-                writer.write("{} {{\n", name);
+                if (writer.mUseBraces) {
+                    writer.write("{} {{\n", name);
+                } else {
+                    writer.write("{}\n", name);
+                }
             }
             ++writer.mIndentLevel;
         }
@@ -362,7 +378,9 @@ public:
         ~Scope() {
             if (writer_) {
                 --writer_->mIndentLevel;
-                writer_->writeLine("}");
+                if (writer_->mUseBraces) {
+                    writer_->writeLine("}");
+                }
             }
         }
 
@@ -382,6 +400,7 @@ private:
     std::string mBuffer;
     std::unordered_set<std::uint32_t> mWrittenCallTables;
     std::int32_t mIndentLevel;
+    bool mUseBraces;
 };
 
 static auto WriteParamDefine(TextWriter& writer, const Param& def) -> void {
@@ -725,12 +744,12 @@ static auto WriteAssetCallTable(TextWriter& writer, const AssetCallTable& act, b
     }
 }
 
-auto Database::text() const -> std::string {
+auto Database::text(bool useBraces) const -> std::string {
     if (!mParamDefineTable) {
         common::AbortWithDetail("ParamDefineTable has not been initialized!");
     }
 
-    auto writer = TextWriter(0x1000000); // 16 MB, might be a bit low for some files
+    auto writer = TextWriter(0x1000000, useBraces); // 16 MB, might be a bit low for some files
     {
         const auto _ = writer.scope("Metadata");
         writer.writeLine("ModuleType = {}", common::ToString(mModuleType));

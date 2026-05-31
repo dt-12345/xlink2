@@ -46,8 +46,8 @@ public:
     auto parse(std::span<const char> text, ParseDataTag tag) -> void;
     auto parse(std::string_view path) -> void;
 
-    auto text() const -> std::string;
-    auto text(std::string_view path) const -> void;
+    auto text(bool useBraces = true) const -> std::string;
+    auto text(std::string_view path, bool useBraces = true) const -> void;
 
     auto reset() -> void;
 

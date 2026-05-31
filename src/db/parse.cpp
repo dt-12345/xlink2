@@ -308,6 +308,7 @@ public:
 
 private:
     auto skipWhitespace() -> void {
+        const auto startLine = mCurrentLine;
         while (!isEOF()) {
             const auto c = peek();
             if (std::isspace(c)) {
@@ -316,6 +317,9 @@ private:
             } else {
                 break;
             }
+        }
+        if (startLine != mCurrentLine) {
+            mCurrentIndent = mCurrentColumn;
         }
     }
 
@@ -617,12 +621,13 @@ private:
         return Token{ Token::EndOfFile };
     }
 
-    friend class MaybeScope;
+    friend class Scope;
 
     const std::span<const char> mData;
     std::size_t mCurrentLine = 0;
     std::size_t mCurrentColumn = 0;
     std::size_t mCurrentPosition = 0;
+    std::size_t mCurrentIndent = 0;
 };
 
 template <typename... Ts>
@@ -640,9 +645,19 @@ template <typename... Ts>
 class Scope {
 public:
     Scope(Lexer& lexer, const char* name) : mLexer(std::ref(lexer)), mName(name) {
-        mLastToken = mLexer.get().next();
-        if (mLastToken.type != Token::ScopeBegin) {
-            SyntaxError(mLexer.get(), mLastToken, "Expected {{ to begin scope {}!", mName);
+        mLastLine = mLexer.get().mCurrentLine;
+        const auto initalIndent = mLexer.get().mCurrentIndent;
+        mLexer.get().skipWhitespace();
+        if (mLexer.get().peek() == '{') {
+            mLastToken = mLexer.get().next();
+            mActive = true;
+        } else {
+            mIndentLevel = mLexer.get().mCurrentIndent;
+            if (initalIndent < mLexer.get().mCurrentIndent) {
+                mActive = true;
+            } else {
+                mActive = false;
+            }
         }
     }
 
@@ -652,62 +667,42 @@ public:
     auto operator=(const Scope&) -> Scope& = delete;
 
     ~Scope() {
-        while (mLastToken.type != Token::ScopeEnd) { get(); }
-    }
-
-    operator bool() const { return mLastToken.type != Token::ScopeEnd; }
-
-    auto get() -> Token& {
-        mLastToken = mLexer.get().next();
-        if (mLastToken.type == Token::EndOfFile) {
-            SyntaxError(mLexer.get(), mLastToken, "Pre-mature end-of-file detected! Scope for {} was not closed!", mName);
-        }
-        return mLastToken;
-    }
-
-private:
-    std::reference_wrapper<Lexer> mLexer;
-    const char* mName;
-    Token mLastToken;
-};
-
-class MaybeScope {
-public:
-    MaybeScope(Lexer& lexer, const char* name) : mLexer(std::ref(lexer)), mName(name) {
-        mLexer.get().skipWhitespace();
-        if (mLexer.get().peek() == '{') {
-            mLastToken = mLexer.get().next();
-            mActive = true;
-        } else {
-            mActive = false;
-        }
-    }
-
-    MaybeScope(MaybeScope&&) = delete;
-    auto operator=(MaybeScope&&) -> MaybeScope& = delete;
-    MaybeScope(const MaybeScope&) = delete;
-    auto operator=(const MaybeScope&) -> MaybeScope& = delete;
-
-    ~MaybeScope() {
-        if (mActive) {
+        if (mActive && !isIndent()) {
             while (mLastToken.type != Token::ScopeEnd) { get(); }
         }
     }
 
-    operator bool() const { return mActive && mLastToken.type != Token::ScopeEnd; }
+    operator bool() const {
+        mLexer.get().skipWhitespace();
+        return mActive && (isIndent() ? mLexer.get().mCurrentIndent == mIndentLevel : mLexer.get().peek() != '}');
+    }
 
     auto get() -> Token& {
-        mLastToken = mLexer.get().next();
-        if (mLastToken.type == Token::EndOfFile) {
-            SyntaxError(mLexer.get(), mLastToken, "Pre-mature end-of-file detected! Scope for {} was not closed!", mName);
+        if (isIndent()) {
+            mLexer.get().skipWhitespace();
+            if (mLastLine != mLexer.get().mCurrentLine && mIndentLevel == mLexer.get().mCurrentIndent) {
+                mLastLine = mLexer.get().mCurrentLine;
+            } else {
+                SyntaxError(mLexer.get(), Token{}, "Scope {} expected new line with {} indent!", mName, mIndentLevel);
+            }
+            mLastToken = mLexer.get().next();
+        } else {
+            mLastToken = mLexer.get().next();
+            if (mLastToken.type == Token::EndOfFile) {
+                SyntaxError(mLexer.get(), mLastToken, "Pre-mature end-of-file detected! Scope for {} was not closed!", mName);
+            }
         }
         return mLastToken;
     }
 
 private:
-    std::reference_wrapper<Lexer> mLexer;
+    auto isIndent() const -> bool { return mIndentLevel != 0xffff'ffff'ffff'ffffull; }
+
+    mutable std::reference_wrapper<Lexer> mLexer;
     const char* mName;
     Token mLastToken;
+    std::size_t mIndentLevel = 0xffff'ffff'ffff'ffffull;
+    std::size_t mLastLine = 0;
     bool mActive;
 };
 
@@ -796,7 +791,8 @@ static auto ParseMetadata(Database& db, Lexer& lexer) -> void {
 
 static auto ParseParamDefineSet(std::vector<Param>& defines, Lexer& lexer) -> void {
     auto scope = Scope(lexer, "ParamDefines");
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         if (key.type != Token::Identifier) {
             SyntaxError(lexer, key, "Failed to read identifier for key-value pair!");
         }
@@ -851,7 +847,8 @@ static auto ParseParamDefineSet(std::vector<Param>& defines, Lexer& lexer) -> vo
 
 static auto ParseParamDefines(ParamDefineTable& pdt, Lexer& lexer) -> void {
     auto scope = Scope(lexer, "ParamDefineTable");
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         if (key.type != Token::Identifier) {
             SyntaxError(lexer, key, "Expected ParamDefine category identifier!");
         }
@@ -875,7 +872,8 @@ static auto ParseParamDefines(ParamDefineTable& pdt, Lexer& lexer) -> void {
 [[nodiscard]] static auto ParseRandom(Lexer& lexer) -> std::unique_ptr<RandomTable> {
     auto scope = Scope(lexer, "Random");
     auto random = std::make_unique<RandomTable>();
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         if (key.type != Token::Identifier) {
             SyntaxError(lexer, key, "Failed to read identifier for key-value pair!");
         }
@@ -899,7 +897,8 @@ static auto ParseParamDefines(ParamDefineTable& pdt, Lexer& lexer) -> void {
 
 static auto ParseCurvePoints(std::vector<CurvePoint>& points, Lexer& lexer) -> void {
     auto scope = Scope(lexer, "CurvePoints");
-    for (auto token = scope.get(); scope; token = scope.get()) {
+    while (scope) {
+        const auto token = scope.get();
         if (token.type != Token::ParenthesisOpen) {
             SyntaxError(lexer, token, "Expected opening parentheses");
         }
@@ -915,7 +914,8 @@ static auto ParseCurvePoints(std::vector<CurvePoint>& points, Lexer& lexer) -> v
 [[nodiscard]] static auto ParseCurve(Lexer& lexer) -> std::unique_ptr<Curve> {
     auto scope = Scope(lexer, "Curve");
     auto curve = std::make_unique<Curve>();
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         if (key.type != Token::Identifier) {
             SyntaxError(lexer, key, "Failed to read identifier for key-value pair!");
         }
@@ -945,7 +945,8 @@ static auto ParseCurvePoints(std::vector<CurvePoint>& points, Lexer& lexer) -> v
 
 static auto ParseArrangeGroup(ArrangeGroup& group, Lexer& lexer) -> void {
     auto scope = Scope(lexer, "ArrangeGroup");
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         if (key.type != Token::Identifier) {
             SyntaxError(lexer, key, "Failed to read identifier for key-value pair!");
         }
@@ -967,7 +968,8 @@ static auto ParseArrangeGroup(ArrangeGroup& group, Lexer& lexer) -> void {
 [[nodiscard]] static auto ParseArrangeParam(Lexer& lexer) -> std::unique_ptr<ArrangeParam> {
     auto scope = Scope(lexer, "ArrangeParam");
     auto param = std::make_unique<ArrangeParam>();
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         auto& group = param->emplace_back();
         if (key.type == Token::String) {
             group.setName(Unescape(key.value));
@@ -984,7 +986,8 @@ static auto ParseArrangeGroup(ArrangeGroup& group, Lexer& lexer) -> void {
 
 static auto ParseParams(std::vector<Param>& params, Lexer& lexer) -> void {
     auto scope = Scope(lexer, "Param");
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         if (key.type != Token::Identifier) {
             SyntaxError(lexer, key, "Failed to read identifier for key-value pair!");
         }
@@ -1036,7 +1039,8 @@ static auto ParseParams(std::vector<Param>& params, Lexer& lexer) -> void {
 
 static auto ParseLocalProperties(std::set<std::string>& props, Lexer& lexer) -> void {
     auto scope = Scope(lexer, "Properties");
-    for (auto prop = scope.get(); scope; prop = scope.get()) {
+    while (scope) {
+        const auto prop = scope.get();
         if (prop.type == Token::String) {
             props.emplace(Unescape(prop.value));
         } else if (HasValue(prop.type)) {
@@ -1050,7 +1054,8 @@ static auto ParseLocalProperties(std::set<std::string>& props, Lexer& lexer) -> 
 static auto ParseActionTrigger(ActionTrigger& trigger, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "ActionTrigger");
     auto foundAsset = false;
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         if (key.type != Token::Identifier) {
             SyntaxError(lexer, key, "Failed to read identifier for key-value pair!");
         }
@@ -1096,7 +1101,8 @@ static auto ParseActionTrigger(ActionTrigger& trigger, Lexer& lexer, std::vector
 
 static auto ParseActionTriggers(std::vector<ActionTrigger>& triggers, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "ActionTriggers");
-    for (auto guid = scope.get(); scope; guid = scope.get()) {
+    while (scope) {
+        const auto guid = scope.get();
         if (guid.type != Token::IntegerHex) {
             SyntaxError(lexer, guid, "Failed to parse action trigger GUID!");
         }
@@ -1110,7 +1116,8 @@ static auto ParseActionTriggers(std::vector<ActionTrigger>& triggers, Lexer& lex
 static auto ParseActions(std::vector<Action>& actions, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "Actions");
     auto isPrefix = false;
-    for (auto action = scope.get(); scope; action = scope.get()) {
+    while (scope) {
+        const auto action = scope.get();
         if (action.type == Token::String) {
             actions.emplace_back(Unescape(action.value));
         } else if (HasValue(action.type)) {
@@ -1133,7 +1140,8 @@ static auto ParseActions(std::vector<Action>& actions, Lexer& lexer, std::vector
 
 static auto ParseActionSlots(std::vector<ActionSlot>& slots, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "ActionSlots");
-    for (auto slot = scope.get(); scope; slot = scope.get()) {
+    while (scope) {
+        const auto slot = scope.get();
         if (slot.type == Token::String) {
             slots.emplace_back(Unescape(slot.value));
         } else if (HasValue(slot.type)) {
@@ -1149,7 +1157,8 @@ static auto ParseActionSlots(std::vector<ActionSlot>& slots, Lexer& lexer, std::
 static auto ParsePropertyTrigger(PropertyTrigger& trigger, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "PropertyTrigger");
     auto foundAsset = false;
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         if (key.type != Token::Identifier) {
             SyntaxError(lexer, key, "Failed to read identifier for key-value pair!");
         }
@@ -1274,7 +1283,8 @@ static auto ParseSwitchCondition(SwitchCondition& cond, Lexer& lexer, std::strin
 
 static auto ParsePropertyTriggers(Property& prop, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "PropertyTriggers");
-    for (auto token = scope.get(); scope; token = scope.get()) {
+    while (scope) {
+        const auto token = scope.get();
         if (token.type != Token::Identifier || token.value != "if") {
             SyntaxError(lexer, token, "Expected `if` at the start of property trigger");
         }
@@ -1297,7 +1307,8 @@ static auto ParsePropertyTriggers(Property& prop, Lexer& lexer, std::vector<std:
 
 static auto ParseProperties(std::vector<Property>& props, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "Properties");
-    for (auto s = scope.get(); scope; s = scope.get()) {
+    while (scope) {
+        const auto s = scope.get();
         if (s.type != Token::Identifier) {
             SyntaxError(lexer, s, "Failed to parse property scope!");
         }
@@ -1313,7 +1324,8 @@ static auto ParseProperties(std::vector<Property>& props, Lexer& lexer, std::vec
 static auto ParseAlwaysTrigger(AlwaysTrigger& trigger, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "AlwaysTrigger");
     auto foundAsset = false;
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         if (key.type != Token::Identifier) {
             SyntaxError(lexer, key, "Failed to read identifier for key-value pair!");
         }
@@ -1349,7 +1361,8 @@ static auto ParseAlwaysTrigger(AlwaysTrigger& trigger, Lexer& lexer, std::vector
 
 static auto ParseAlwaysTriggers(std::vector<AlwaysTrigger>& triggers, Lexer& lexer, std::vector<std::uint32_t>& info) -> void {
     auto scope = Scope(lexer, "AlwaysTriggers");
-    for (auto token = scope.get(); scope; token = scope.get()) {
+    while (scope) {
+        const auto token = scope.get();
         auto& trigger = triggers.emplace_back();
         if (token.type == Token::IntegerHex) {
             trigger.setGUID(ToU32(token.value, 16));
@@ -1455,7 +1468,8 @@ static auto ParseGridCases(
     std::unordered_map<std::string, std::uint32_t>& gridMapping
 ) -> void {
     auto scope = Scope(lexer, "GridCases");
-    for (auto token = scope.get(); scope; token = scope.get()) {
+    while (scope) {
+        const auto token = scope.get();
         if (token.type != Token::ParenthesisOpen) {
             SyntaxError(lexer, token, "Expected opening parenthesis for grid condition");
         }
@@ -1482,13 +1496,15 @@ static auto ParseGridCases(
 }
 
 static auto ParseGridChildren(
+    Grid& grid,
     std::unordered_map<std::uint32_t, AssetCallTableHandle>& children,
     Lexer& lexer,
     std::unordered_map<std::uint32_t, AssetCallTableHandle>& callTables,
     std::vector<std::pair<std::reference_wrapper<AssetCallTableHandle>, std::uint32_t>>& deferred
 ) -> void {
     auto scope = Scope(lexer, "GridChildren");
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         std::string keyname;
         if (key.type == Token::String) {
             keyname = Unescape(key.value);
@@ -1502,6 +1518,7 @@ static auto ParseGridChildren(
         const auto guid = GetUInt(lexer);
         EnsureToken(lexer, Token::BracketClose);
         if (auto res = ParseAssetCallTable(keyname, guid, lexer, callTables, deferred); res) {
+            grid.addChild(res);
             children.emplace(res->getGUID(), res);
         } else {
             SyntaxError(lexer, key, "Grid container children cannot be declared without a body! {}[{:#010x}]", keyname, guid);
@@ -1524,7 +1541,8 @@ static auto ParseContainer(
             auto& switch_ = static_cast<Switch&>(act);
             switch_.setSwitchType(type);
             switch_.setSwitchVariable(prop);
-            for (auto token = scope.get(); scope; token = scope.get()) {
+            while (scope) {
+                const auto token = scope.get();
                 if (token.type != Token::ParenthesisOpen) {
                     SyntaxError(lexer, token, "Expected opening parenthesis!");
                 }
@@ -1549,7 +1567,8 @@ static auto ParseContainer(
         case CallTableType::Random: {
             auto scope = Scope(lexer, "Random");
             auto& random = static_cast<Random&>(act);
-            for (auto token = scope.get(); scope; token = scope.get()) {
+            while (scope) {
+                const auto token = scope.get();
                 float weight;
                 if (token.type == Token::Float) {
                     weight = ToF32(token.value);
@@ -1577,7 +1596,8 @@ static auto ParseContainer(
         case CallTableType::RandomNoRepeat: {
             auto scope = Scope(lexer, "RandomNoRepeat");
             auto& random = static_cast<RandomNoRepeat&>(act);
-            for (auto token = scope.get(); scope; token = scope.get()) {
+            while (scope) {
+                const auto token = scope.get();
                 float weight;
                 if (token.type == Token::Float) {
                     weight = ToF32(token.value);
@@ -1605,7 +1625,8 @@ static auto ParseContainer(
         case CallTableType::Blend: {
             auto scope = Scope(lexer, "Blend");
             auto& blend = static_cast<Blend&>(act);
-            for (auto token = scope.get(); scope; token = scope.get()) {
+            while (scope) {
+                const auto token = scope.get();
                 std::string keyname;
                 if (token.type == Token::String) {
                     keyname = Unescape(token.value);
@@ -1638,7 +1659,8 @@ static auto ParseContainer(
             auto& blend = static_cast<BlendBy&>(act);
             blend.setBlendPropertyName(prop);
             blend.setBlendPropertyScope(type == SwitchType::GlobalProperty ? PropertyScope::Global : PropertyScope::Local);
-            for (auto token = scope.get(); scope; token = scope.get()) {
+            while (scope) {
+                const auto token = scope.get();
                 if (token.type != Token::ParenthesisOpen) {
                     SyntaxError(lexer, token, "Expected opening parenthesis for blend by condition");
                 }
@@ -1670,7 +1692,8 @@ static auto ParseContainer(
             auto& seq = static_cast<Sequence&>(act);
             auto foundContinueOnFade = false;
             auto continueOnFade = 0u;
-            for (auto token = scope.get(); scope; token = scope.get()) {
+            while (scope) {
+                const auto token = scope.get();
                 std::string keyname;
                 if (token.type == Token::String) {
                     keyname = Unescape(token.value);
@@ -1729,7 +1752,8 @@ static auto ParseContainer(
             grid.setProperty2Scope(type2 == SwitchType::GlobalProperty ? PropertyScope::Global : PropertyScope::Local);
             auto gridMapping = std::unordered_map<std::string, std::uint32_t>{};
             auto children = std::unordered_map<std::uint32_t, AssetCallTableHandle>{};
-            for (auto token = scope.get(); scope; token = scope.get()) {
+            while (scope) {
+                const auto token = scope.get();
                 if (token.type != Token::Identifier) {
                     SyntaxError(lexer, token, "Expected identifier for grid body! Either Cases or Children");
                 }
@@ -1743,13 +1767,10 @@ static auto ParseContainer(
                     if (!children.empty()) {
                         SyntaxError(lexer, token, "Redeclaration of grid children!");
                     }
-                    ParseGridChildren(children, lexer, callTables, deferred);
+                    ParseGridChildren(grid, children, lexer, callTables, deferred);
                 } else {
                     SyntaxError(lexer, token, "Unknown grid attribute!");
                 }
-            }
-            for (const auto& [_, child] : children) {
-                grid.addChild(child);
             }
             for (const auto& v1 : grid.getValues1()) {
                 for (const auto& v2 : grid.getValues2()) {
@@ -1799,7 +1820,7 @@ static auto ParseAssetCallTable(
     std::unordered_map<std::uint32_t, AssetCallTableHandle>& callTables,
     std::vector<std::pair<std::reference_wrapper<AssetCallTableHandle>, std::uint32_t>>& deferred
 ) -> AssetCallTableHandle {
-    auto scope = MaybeScope(lexer, "AssetCallTable");
+    auto scope = Scope(lexer, "AssetCallTable");
     if (!scope) {
         return AssetCallTableHandle{ nullptr };
     }
@@ -1814,7 +1835,8 @@ static auto ParseAssetCallTable(
     auto nopause = false;
     auto unknown = -1;
     auto children = std::vector<AssetCallTableHandle>{};
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         if (key.type != Token::Identifier && key.type != Token::At) {
             SyntaxError(lexer, key, "Failed to read identifier for key-value pair!");
         } else if (key.type == Token::At) {
@@ -1884,7 +1906,8 @@ static auto ParseAssetCallTable(
 static auto ParseAssetCallTables(std::vector<AssetCallTableHandle>& assetCallTables, Lexer& lexer, std::unordered_map<std::uint32_t, AssetCallTableHandle>& callTables) -> void {
     auto scope = Scope(lexer, "AssetCallTables");
     auto deferred = std::vector<std::pair<std::reference_wrapper<AssetCallTableHandle>, std::uint32_t>>{};
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         std::string keyname;
         if (key.type == Token::String) {
             keyname = Unescape(key.value);
@@ -1917,7 +1940,8 @@ static auto ParseUser(User& user, Lexer& lexer) -> void {
     auto scope = Scope(lexer, "User");
     auto triggerCallTableGuids = std::vector<std::uint32_t>{};
     auto assetCallTables = std::unordered_map<std::uint32_t, AssetCallTableHandle>{};
-    for (auto key = scope.get(); scope; key = scope.get()) {
+    while (scope) {
+        const auto key = scope.get();
         if (key.type != Token::Identifier) {
             SyntaxError(lexer, key, "Expected user section identifier!");
         }
@@ -1978,7 +2002,8 @@ static auto ParseUser(User& user, Lexer& lexer) -> void {
 static auto ParseUsers(Database& db, Lexer& lexer) -> void {
     auto scope = Scope(lexer, "Users");
     auto seen = std::unordered_map<std::uint32_t, std::reference_wrapper<const User>>{};
-    for (auto hashOrName = scope.get(); scope; hashOrName = scope.get()) {
+    while (scope) {
+        const auto hashOrName = scope.get();
         auto user = std::make_unique<User>();
         // TODO: should we support base 10 hashes as well?
         if (!HasValue(hashOrName.type) || hashOrName.type == Token::Float) {

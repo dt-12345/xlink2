@@ -176,7 +176,7 @@ There are 8 types of containers with different functionality.
   - Randomly selects one child call table without repeating
 - Blend
   - Blends together all child call tables
-- BlendBy
+- BlendBy (Stardust and above)
   - Blends together two child call tables based on some condition (property)
 - Sequence
   - Plays each child call table in sequence

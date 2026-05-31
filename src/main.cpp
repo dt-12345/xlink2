@@ -71,6 +71,7 @@ struct AppState {
     FileType outputType = Auto;
     mango::Game game = mango::Game::EXKing;
     mango::Platform platform = mango::Platform::NX;
+    bool useBraces = true;
 #ifdef XLINK_DEBUG
     bool roundtrip = false;
     bool parseonly = false;
@@ -162,6 +163,8 @@ auto main(int argc, const char** argv) -> int {
         } else if (arg == "--help" || arg == "-h") {
             PrintHelpMessage();
             return 0;
+        } else if (arg == "--no-braces" || arg == "-nb") {
+            state.useBraces = false;
 #ifdef XLINK_DEBUG
         } else if (arg == "--round-trip" || arg == "-rt") {
             state.roundtrip = true;
@@ -231,14 +234,14 @@ auto main(int argc, const char** argv) -> int {
 
     if (state.roundtrip) {
         auto newDb = mango::Database();
-        const auto origText = db.text();
+        const auto origText = db.text(state.useBraces);
         if (state.inputType == Binary) {
             newDb.load(db.save(state.game, state.platform), state.game, state.platform);
         } else {
             newDb.parse(origText, mango::ParseDataTag{});
         }
 
-        if (origText == newDb.text()) {
+        if (origText == newDb.text(state.useBraces)) {
             return 0;
         } else {
             fmt::println(stderr, "NOT MATCHING");
@@ -250,7 +253,7 @@ auto main(int argc, const char** argv) -> int {
     if (state.outputType == Binary) {
         db.save(state.outputPath, state.game, state.platform);
     } else {
-        db.text(state.outputPath);
+        db.text(state.outputPath, state.useBraces);
     }
 
     return 0;
