@@ -516,7 +516,7 @@ static auto WriteActionSlot(TextWriter& writer, const ActionSlot& slot) -> void 
             const auto _ = writer.scope(true, "{:#010x}", trigger.getGUID());
             writer.writeLine("Type = {}", common::ToString(trigger.getType()));
             writer.writeLine("Start = {}", trigger.getStartFrame());
-            writer.writeLine("End = {}", trigger.getStartFrame());
+            writer.writeLine("End = {}", trigger.getEndFrame());
             switch (trigger.getType()) {
                 case ActionTriggerType::FrameWindow:
                 case ActionTriggerType::Always:
