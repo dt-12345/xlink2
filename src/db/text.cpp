@@ -795,6 +795,9 @@ auto Database::text(bool useBraces) const -> std::string {
             if (!user) {
                 continue;
             }
+            if (!useBraces) {
+                writer.write("=========================\n");
+            }
             const auto _ = writer.scope(true, "{}", *user);
             writer.writeLine("Unknown = {}", user->getUnknown());
             {
@@ -837,6 +840,9 @@ auto Database::text(bool useBraces) const -> std::string {
                 }
             }
             writer.clearCallTables();
+            if (!useBraces) {
+                writer.write("=========================\n\n");
+            }
         }
     }
 

@@ -131,6 +131,8 @@ static auto PrintHelpMessage() -> void {
         "  --names, -n\n"
         "    Username Database Path\n"
         "      This is a text file with usernames separated by newlines, used to resolve username hashes inside the database\n"
+        "  --no-braces, -nb\n"
+        "    Exclude Curly Braces From Text Output\n"
         "  --help, -h\n"
         "    Print Help Message\n"
     );

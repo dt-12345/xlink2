@@ -652,6 +652,8 @@ public:
             mLastToken = mLexer.get().next();
             mActive = true;
         } else {
+            while (mLexer.get().peek() == '=') { mLexer.get().advance(); }
+            mLexer.get().skipWhitespace();
             mIndentLevel = mLexer.get().mCurrentIndent;
             if (initalIndent < mLexer.get().mCurrentIndent) {
                 mActive = true;
@@ -667,8 +669,13 @@ public:
     auto operator=(const Scope&) -> Scope& = delete;
 
     ~Scope() {
-        if (mActive && !isIndent()) {
-            while (mLastToken.type != Token::ScopeEnd) { get(); }
+        if (mActive) {
+            if (!isIndent()) {
+                while (mLastToken.type != Token::ScopeEnd) { get(); }
+            } else {
+                mLexer.get().skipWhitespace();
+                while (mLexer.get().peek() == '=') { mLexer.get().advance(); }
+            }
         }
     }
 
@@ -985,7 +992,7 @@ static auto ParseArrangeGroup(ArrangeGroup& group, Lexer& lexer) -> void {
 }
 
 static auto ParseParams(std::vector<Param>& params, Lexer& lexer) -> void {
-    auto scope = Scope(lexer, "Param");
+    auto scope = Scope(lexer, "Params");
     while (scope) {
         const auto key = scope.get();
         if (key.type != Token::Identifier) {
