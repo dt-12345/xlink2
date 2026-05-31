@@ -921,6 +921,7 @@ static auto LoadAssetCallTable(
     act->setKeyName(keyName);
     act->setOneShot(flags.isOn(xlink2::CallTableFlags::OneShot));
     act->setNoPause(flags.isOn(xlink2::CallTableFlags::NoPause));
+    act->setUserFlags(static_cast<std::uint16_t>(flags) >> 8 & 0xff);
     act->setEmitCount(emitCount);
     act->setGUID(guid);
     return act;

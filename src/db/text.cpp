@@ -594,6 +594,7 @@ static auto WriteAssetCallTable(TextWriter& writer, const AssetCallTable& act, b
     writer.writeLine("EmitCount = {}", act.getEmitCount());
     writer.writeLine("Oneshot = {}", act.getOneShot());
     writer.writeLine("NoPause = {}", act.getNoPause());
+    writer.writeLine("UserFlags = {:#x}", +act.getUserFlags());
 
     switch (act.getType()) {
         case CallTableType::Switch: {

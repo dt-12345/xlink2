@@ -35,6 +35,7 @@ public:
     auto setEmitCount(std::int32_t count) -> void { mEmitCount = count; }
     auto setOneShot(bool value) -> void { mOneShot = value; }
     auto setNoPause(bool value) -> void { mNoPause = value; }
+    auto setUserFlags(std::uint8_t value) -> void { mUserFlags = value; }
 
     [[nodiscard]] auto getChildren() -> std::vector<AssetCallTableHandle>& { return mChildren; }
     [[nodiscard]] auto getChildren() const -> const std::vector<AssetCallTableHandle>& { return mChildren; }
@@ -48,6 +49,7 @@ public:
     [[nodiscard]] auto getEmitCount() const -> std::int32_t { return mEmitCount; }
     [[nodiscard]] auto getOneShot() const -> bool { return mOneShot; }
     [[nodiscard]] auto getNoPause() const -> bool { return mNoPause; }
+    [[nodiscard]] auto getUserFlags() const -> std::uint8_t { return mUserFlags; }
     [[nodiscard]] auto getDepth() const -> std::uint32_t;
 
 protected:
@@ -59,6 +61,7 @@ protected:
     std::int32_t mEmitCount                     = 1;     // how many times to emit the effect/sound when the event is requested a single time
     bool mOneShot                               = false; // this event is only active when actively being requested
     bool mNoPause                               = false; // this event cannot be paused
+    std::uint8_t mUserFlags                     = 0;
 };
 
 inline AssetCallTable::~AssetCallTable() = default;

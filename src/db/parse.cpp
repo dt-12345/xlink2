@@ -1840,6 +1840,7 @@ static auto ParseAssetCallTable(
     auto emitCount = 1;
     auto oneshot = false;
     auto nopause = false;
+    auto userFlags = std::uint8_t(0);
     auto unknown = -1;
     auto children = std::vector<AssetCallTableHandle>{};
     while (scope) {
@@ -1863,6 +1864,8 @@ static auto ParseAssetCallTable(
             oneshot = GetIdentifier(lexer) == "true";
         } else if (key.value == "NoPause") {
             nopause = GetIdentifier(lexer) == "true";
+        } else if (key.value == "UserFlags") {
+            userFlags = GetUInt(lexer);
         } else if (key.value == "Execute") {
             if (act) {
                 SyntaxError(lexer, key, "A call table cannot have multiple execute attributes!");
@@ -1907,6 +1910,7 @@ static auto ParseAssetCallTable(
     act->setEmitCount(emitCount);
     act->setOneShot(oneshot);
     act->setNoPause(nopause);
+    act->setUserFlags(userFlags);
     return act;
 }
 

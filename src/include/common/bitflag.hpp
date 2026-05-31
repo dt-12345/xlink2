@@ -37,7 +37,7 @@ public:
     [[nodiscard]] constexpr auto getNumOn() const -> std::size_t { return std::popcount(mStorage); }
     [[nodiscard]] constexpr auto getNumOff() const -> std::size_t { return cBitSize - getNumOn(); }
 
-    constexpr operator StorageT() noexcept { return mStorage; }
+    constexpr operator StorageT() const noexcept { return mStorage; }
 
 private:
     StorageT mStorage;

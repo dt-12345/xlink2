@@ -14,8 +14,14 @@ enum class CallTableFlags : std::uint16_t {
     _05             = 5,
     _06             = 6,
     _07             = 7,
-    _08             = 8,
-    _09             = 9, // TODO: this is checked in a replaceAssetInfo callback but there doesn't seem to be any call tables that use it
+    UserFlag0       = 8,
+    UserFlag1       = 9,    // in totk, this is used for conversions for gloom version of things
+    UserFlag2       = 10,
+    UserFlag3       = 11,
+    UserFlag4       = 12,
+    UserFlag5       = 13,
+    UserFlag6       = 14,
+    UserFlag7       = 15,
 };
 
 template <mango::Game GAME>

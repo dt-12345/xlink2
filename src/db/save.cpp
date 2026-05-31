@@ -1361,7 +1361,7 @@ static auto SaveAssetCallTable(
     } else {
         ctx.writer.write(std::int16_t(-1));
     }
-    auto flags = common::BitFlag<xlink2::CallTableFlags, std::uint16_t>();
+    auto flags = common::BitFlag<xlink2::CallTableFlags, std::uint16_t>(static_cast<std::uint16_t>(act.getUserFlags()) << 8);
     flags.set(xlink2::CallTableFlags::IsContainer, act.isContainer());
     flags.set(xlink2::CallTableFlags::OneShot, act.getOneShot());
     flags.set(xlink2::CallTableFlags::NoPause, act.getNoPause());
