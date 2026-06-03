@@ -525,18 +525,62 @@ Execute = Jump => SurpriseM[0x0d3388fe]
 
 ### Other Stuff I Need to Organize
 
-AssetBitFlag: (I haven't looked at these in a while so I'm not sure how accurate these are - they may also change by version, also why don't I have bit 0 smh)
-  - ELink:
-    - bit 1 = IsFollow
-    - bit 2 = IsUseOneEmitter
-    - bit 3 = IsForceLoopAsset
-  - SLink:
-    - bit 1 = IsNoParamUpdate
-    - bit 2 = IsNoPos
-    - bit 3 = IsStopWhenEmitterDestroying
-    - bit 4 = IsUnified
-    - bit 5 = IsAutoOneTimeFade
-    - bit 6 = IsForceLoopAsset
+```cpp
+// TODO: user bit flag
+
+// TODO: the asset bit flags probably change by version (this is from totk)
+enum AssetBitFlagELink {
+  _00               = 1 << 0,
+  IsFollow          = 1 << 1,
+  IsUseOneEmitter   = 1 << 2,
+  IsForceLoopAsset  = 1 << 3,
+};
+
+enum class AssetBitFlagSLink {
+  _00                         = 1 << 0,
+  IsNoParamUpdate             = 1 << 1,
+  IsNoPos                     = 1 << 2,
+  IsStopWhenEmitterDestroying = 1 << 3,
+  IsUnified                   = 1 << 4,
+  IsAutoOneTimeFade           = 1 << 5,
+  IsForceLoopAsset            = 1 << 6,
+};
+
+// what to do when the user is clipped
+enum ClipType {
+  // older versions (pre-jump container)
+  ClipNone    = 0,
+  ClipKill    = 1,
+  ClipReemit  = 2,
+  ClipPause   = 3,
+
+  // newer versions (post-jump container)
+  ClipDefault = 0, // kill if not IsNeedObserve, otherwise reemit
+  ClipKill    = 1,
+  ClipReemit  = 2,
+  ClipNone    = 3,
+  ClipPause   = 4,
+};
+
+// TODO: check if these change by version (though probably not)
+enum MtxSetType {
+  IgnoreScale             = 0,  // scale only depends on the scale of the user
+  Normal                  = 1,
+  DefaultScale            = 2,
+  DefaultRot              = 3,
+  DefaultScaleRot         = 4,
+  DefaultRotLocalPos      = 5,
+  DefaultScaleRotLocalPos = 6,
+};
+
+enum RotateSourceType {
+  Param = 0,
+  Model = 1,
+};
+
+// TODO: StartTimePosType
+
+```
 
 ## Building
 
