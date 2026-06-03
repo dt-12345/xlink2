@@ -24,6 +24,8 @@ will print a help message with more detailed usage information.
 
 ## Documentation (WIP)
 
+Note that identifiers containing spaces or any of the following characters must be quoted: `"`, `=`, `!`, `<`, `>`, `(`, `)`, `{`, `}`, `[`, `]`, `@`, `,`, `#`, `:`.
+
 ### Metadata
 
 This is metadata for the file. `Metadata` defines whether this is an ELink or a SLink database.
