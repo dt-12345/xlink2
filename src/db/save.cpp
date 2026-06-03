@@ -148,8 +148,8 @@ struct hash<reference_wrapper<const mango::Curve>> {
         h = mango::detail::Combine(h, hash<mango::PropertyScope>{}(value.get().getPropertyScope()));
         h = mango::detail::Combine(h, hash<string_view>{}(value.get().getPropertyName()));
         h = mango::detail::Combine(h, hash<mango::CurveType>{}(value.get().getType()));
-        h = mango::detail::Combine(h, hash<int32_t>{}(value.get().getUnknown1()));
-        h = mango::detail::Combine(h, hash<int16_t>{}(value.get().getUnknown2()));
+        h = mango::detail::Combine(h, hash<int32_t>{}(value.get().getUnknown()));
+        h = mango::detail::Combine(h, hash<mango::CurveUpdateMode>{}(value.get().getUpdateType()));
         for (const auto& point : value.get().getPoints()) {
             h = mango::detail::Combine(h, hash<float>{}(point.x));
             h = mango::detail::Combine(h, hash<float>{}(point.y));
@@ -308,11 +308,11 @@ auto operator==(const Curve& lhs, const Curve& rhs) -> bool {
         return false;
     }
 
-    if (lhs.getUnknown1() != rhs.getUnknown1()) {
+    if (lhs.getUnknown() != rhs.getUnknown()) {
         return false;
     }
 
-    if (lhs.getUnknown2() != rhs.getUnknown2()) {
+    if (lhs.getUpdateType() != rhs.getUpdateType()) {
         return false;
     }
 
@@ -1304,6 +1304,16 @@ static auto SaveUserParams(const std::vector<Param>& params, SaveContext& ctx, c
     }
 }
 
+[[nodiscard]] static auto ConvertCurveUpdateMode(CurveUpdateMode mode) -> xlink2::CurveUpdateType {
+    switch (mode) {
+        case CurveUpdateMode::LocalVolatile: return xlink2::CurveUpdateType::LocalVolatile;
+        case CurveUpdateMode::LocalStable: return xlink2::CurveUpdateType::LocalStable;
+        case CurveUpdateMode::Global: return xlink2::CurveUpdateType::Global;
+        default:
+            common::AbortWithDetail("Invalid curve update type");
+    }
+}
+
 static auto SaveCurve(const Curve& curve, std::uint16_t& pointIndex, SaveContext& ctx) -> void {
     ctx.writer.write(pointIndex);
     pointIndex += curve.getPoints().size();
@@ -1311,13 +1321,13 @@ static auto SaveCurve(const Curve& curve, std::uint16_t& pointIndex, SaveContext
     ctx.writer.write(static_cast<std::uint16_t>(ConvertCurveType(curve.getType())));
     ctx.writer.write(static_cast<std::uint16_t>(curve.getPropertyScope() == PropertyScope::Global ? 1 : 0));
     ctx.writePtr(ctx.nameTable.at(curve.getPropertyName()));
-    ctx.writer.write(curve.getUnknown1());
+    ctx.writer.write(curve.getUnknown());
     if (curve.getPropertyScope() == PropertyScope::Global) {
         ctx.writer.write(static_cast<std::int16_t>(-1));
     } else {
         ctx.writer.write(static_cast<std::int16_t>(ctx.localPropertyNameTable.at(curve.getPropertyName())));
     }
-    ctx.writer.write(curve.getUnknown2());
+    ctx.writer.write(static_cast<std::int16_t>(ConvertCurveUpdateMode(curve.getUpdateType())));
 }
 
 [[nodiscard]] static auto ConvertLimitType(LimitType type) -> xlink2::LimitType {

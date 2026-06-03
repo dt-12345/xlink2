@@ -703,7 +703,7 @@ public:
     }
 
 private:
-    auto isIndent() const -> bool { return mIndentLevel != 0xffff'ffff'ffff'ffffull; }
+    [[nodiscard]] auto isIndent() const -> bool { return mIndentLevel != 0xffff'ffff'ffff'ffffull; }
 
     mutable std::reference_wrapper<Lexer> mLexer;
     const char* mName;
@@ -937,10 +937,10 @@ static auto ParseCurvePoints(std::vector<CurvePoint>& points, Lexer& lexer) -> v
                 SyntaxError(lexer, token, "Expected :: as a separator!");
             }
             curve->setPropertyName(GetString(lexer));
-        } else if (key.value == "Unknown1") {
-            curve->setUnknown1(GetInt(lexer));
-        } else if (key.value == "Unknown2") {
-            curve->setUnknown2(GetInt(lexer));
+        } else if (key.value == "Unknown") {
+            curve->setUnknown(GetInt(lexer));
+        } else if (key.value == "UpdateType") {
+            curve->setUpdateType(common::FromString<CurveUpdateMode>(GetIdentifier(lexer)));
         } else if (key.value == "Points") {
             ParseCurvePoints(curve->getPoints(), lexer);
         } else {
@@ -1385,7 +1385,7 @@ static auto ParseAlwaysTriggers(std::vector<AlwaysTrigger>& triggers, Lexer& lex
     }
 }
 
-static auto ParseAssetCallTable(
+[[nodiscard]] static auto ParseAssetCallTable(
     const std::string& keyname,
     std::uint32_t guid,
     Lexer& lexer,
@@ -1393,7 +1393,7 @@ static auto ParseAssetCallTable(
     std::vector<std::pair<std::reference_wrapper<AssetCallTableHandle>, std::uint32_t>>& deferred
 ) -> AssetCallTableHandle;
 
-static auto ParseCallTableKey(Lexer& lexer) -> std::tuple<std::string, std::uint32_t, bool> {
+[[nodiscard]] static auto ParseCallTableKey(Lexer& lexer) -> std::tuple<std::string, std::uint32_t, bool> {
     const auto key = lexer.next();
     std::string keyname;
     if (key.type == Token::String) {
@@ -1414,7 +1414,7 @@ static auto ParseCallTableKey(Lexer& lexer) -> std::tuple<std::string, std::uint
     return std::make_tuple(std::move(keyname), guid, false);
 }
 
-static auto ParseSwitchVariable(Lexer& lexer) -> std::pair<SwitchType, std::string> {
+[[nodiscard]] static auto ParseSwitchVariable(Lexer& lexer) -> std::pair<SwitchType, std::string> {
     const auto token = lexer.next();
     SwitchType type = SwitchType::Null;
     if (token.type == Token::LessThan) {
@@ -1439,14 +1439,14 @@ static auto ParseSwitchVariable(Lexer& lexer) -> std::pair<SwitchType, std::stri
     return std::make_pair(type, GetString(lexer));
 }
 
-static auto ParseEnumValue(Lexer& lexer) -> std::pair<std::string, std::string> {
+[[nodiscard]] static auto ParseEnumValue(Lexer& lexer) -> std::pair<std::string, std::string> {
     const auto name = GetString(lexer);
     EnsureToken(lexer, Token::Scope);
     const auto value = GetString(lexer);
     return std::make_pair(std::move(name), std::move(value));
 }
 
-static auto ParseBlendByCondition(Lexer& lexer, const char* type) -> std::pair<float, BlendOp> {
+[[nodiscard]] static auto ParseBlendByCondition(Lexer& lexer, const char* type) -> std::pair<float, BlendOp> {
     auto value = 0.f;
     auto op = BlendOp::None;
     EnsureToken(lexer, Token::BracketOpen);

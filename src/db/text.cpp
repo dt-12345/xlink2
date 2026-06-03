@@ -93,6 +93,7 @@ struct formatter<EscapedString> {
                     } else {
                         fmt::format_to(ctx.out(), "{}", c);
                     }
+                    break;
             }
         }
         return ctx.out();
@@ -326,7 +327,7 @@ public:
         }
     }
 
-    auto flush() -> std::string { return std::move(mBuffer); }
+    [[nodiscard]] auto flush() -> std::string { return std::move(mBuffer); }
 
     friend struct Scope;
 
@@ -449,8 +450,8 @@ static auto WriteParam(TextWriter& writer, const Param& param) -> void {
             const auto _ = writer.scope("CURVE", false);
             writer.writeLine("Type = {}", common::ToString(curve->getType()));
             writer.writeLine("Property = {}", curve->getProperty());
-            writer.writeLine("Unknown1 = {}", curve->getUnknown1());
-            writer.writeLine("Unknown2 = {}", curve->getUnknown2());
+            writer.writeLine("Unknown = {}", curve->getUnknown());
+            writer.writeLine("UpdateType = {}", common::ToString(curve->getUpdateType()));
             {
                 const auto _ = writer.scope("Points =");
                 for (const auto& point : curve->getPoints()) {

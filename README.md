@@ -103,9 +103,14 @@ ParamDefines {
 - F32
   - 32-bit floating point number
   - Curve
+    - Interpolate an input property along a pre-defined curve
     - Curves can be of type Standard or Constant
       - Standard represents a curve that interpolates the input value between a set of pre-defined points
       - Constant represents a curve that always returns the same value (one point)
+    - Curves can have one of three update types
+      - LocalVolatile is for curves that use local properties that are updated while the effect is being emitted
+      - LocalStable is for curves that use local properties that are not updated while the effect is being emitted
+      - Global is for curves that use global properties
   - Random
     - Chooses a random value between the specified min and max values using the specified distribution (the polynomial types can powers 1.5, 2, 3, or 4)
       - Linear

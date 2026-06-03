@@ -131,7 +131,7 @@ struct CallTableInfo {
     std::vector<std::int32_t> childIndices = {};
 };
 
-static constexpr auto ConvertLimitType(xlink2::LimitType type) -> LimitType {
+[[nodiscard]] static constexpr auto ConvertLimitType(xlink2::LimitType type) -> LimitType {
     switch (type) {
         case xlink2::LimitType::None: return LimitType::None;
         case xlink2::LimitType::PriorityThenOldest: return LimitType::PriorityThenOldest;
@@ -297,13 +297,22 @@ auto ParamDefineTable::load(LoadContext& ctx) -> void {
     }
 }
 
-static constexpr auto ConvertCurveType(xlink2::CurveType type) -> CurveType {
+[[nodiscard]] static constexpr auto ConvertCurveType(xlink2::CurveType type) -> CurveType {
     switch (type) {
         case xlink2::CurveType::Standard: return CurveType::Standard;
         case xlink2::CurveType::Constant: return CurveType::Constant;
         default: common::AbortWithDetail("Unknown curve type: {:#x}", std::to_underlying(type));
     }
 };
+
+[[nodiscard]] static constexpr auto ConvertCurveUpdateType(xlink2::CurveUpdateType type) -> CurveUpdateMode {
+    switch (type) {
+        case xlink2::CurveUpdateType::LocalVolatile: return CurveUpdateMode::LocalVolatile;
+        case xlink2::CurveUpdateType::LocalStable: return CurveUpdateMode::LocalStable;
+        case xlink2::CurveUpdateType::Global: return CurveUpdateMode::Global;
+        default: common::AbortWithDetail("Unknown curve update type: {:#x}", std::to_underlying(type));
+    }
+}
 
 static auto ReadRandom(Param& param, LoadContext& ctx, xlink2::ReferenceType refType) -> void {
     const auto min = ctx.reader.read<float>();
@@ -407,14 +416,14 @@ static auto ResolveParam(Param& param, LoadContext& ctx, const Param& def) -> vo
             curve->setType(ConvertCurveType(ctx.reader.read<xlink2::CurveType>()));
             curve->setPropertyScope(ctx.reader.read<std::uint16_t>() == 1 ? PropertyScope::Global : PropertyScope::Local);
             curve->setPropertyName(ctx.getString(ctx.readPtr()));
-            curve->setUnknown1(ctx.reader.read<std::int32_t>());
+            curve->setUnknown(ctx.reader.read<std::int32_t>());
             if (curve->getPropertyScope() == PropertyScope::Local && ctx.getLocalPropertyName(ctx.reader.read<std::int16_t>()) != curve->getPropertyName()) {
                 common::AbortWithDetail(
                     "Curve property name does not match selected local property @ {:#x}!: \"{}\" vs. \"{}\"",
                     ctx.reader.tell(), curve->getPropertyName(), ctx.getLocalPropertyName(ctx.reader.read<std::int16_t>())
                 );
             }
-            curve->setUnknown2(ctx.reader.read<std::int16_t>());
+            curve->setUpdateType(ConvertCurveUpdateType(ctx.reader.read<xlink2::CurveUpdateType>()));
             if (baseIdx + pointCount > ctx.numCurvePointTable) {
                 common::AbortWithDetail("Out-of-range curve point @ {:#x}!: {} + {} (max: {})", ctx.reader.tell(), baseIdx, pointCount, ctx.numCurvePointTable);
             }
@@ -565,7 +574,7 @@ static auto ResolveParam(Param& param, LoadContext& ctx, const Param& def) -> vo
     return out;
 }
 
-static auto ResolveGridChildCallTables(
+[[nodiscard]] static auto ResolveGridChildCallTables(
     const AssetCallTableHandle& act,
     const std::vector<std::int32_t>& values,
     std::int32_t childStart,
@@ -591,10 +600,7 @@ static auto ResolveGridChildCallTables(
     return out;
 }
 
-static auto LoadContainer(
-    CallTableInfo& info,
-    LoadContext& ctx
-) -> AssetCallTableHandle {
+[[nodiscard]] static auto LoadContainer(CallTableInfo& info, LoadContext& ctx) -> AssetCallTableHandle {
     const auto type = LoadContainerType(ctx);
     info.childStart = ctx.reader.read<std::int32_t>();
     info.childEnd = ctx.reader.read<std::int32_t>();
@@ -883,11 +889,7 @@ static auto LoadSwitchCondition(SwitchCondition& cond, LoadContext& ctx, SwitchT
     }
 }
 
-static auto LoadAssetCallTable(
-    CallTableInfo& info,
-    LoadContext& ctx,
-    const ParamDefineTable& pdt
-) -> AssetCallTableHandle {
+[[nodiscard]] static auto LoadAssetCallTable(CallTableInfo& info, LoadContext& ctx, const ParamDefineTable& pdt) -> AssetCallTableHandle {
     const auto keyName = ctx.getString(ctx.readPtr());
     ctx.reader.skip(sizeof(std::int16_t)); // asset index
     const auto flags = common::BitFlag<xlink2::CallTableFlags>(ctx.reader.read<std::uint16_t>());

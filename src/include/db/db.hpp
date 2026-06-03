@@ -21,7 +21,7 @@ public:
     Database();
 
     Database(Database&& lhs);
-    auto operator=(Database&& lhs) -> Database& ;
+    auto operator=(Database&& lhs) -> Database&;
 
     Database(const Database&) = delete;
     auto operator=(const Database&) -> Database& = delete;
@@ -31,22 +31,22 @@ public:
     auto addUser(std::unique_ptr<User> user) -> void;
     auto setModuleType(ModuleType type) -> void { mModuleType = type; }
 
-    auto getParamDefineTable() -> ParamDefineTable& { return *mParamDefineTable; }
-    auto getParamDefineTable() const -> const ParamDefineTable& { return *mParamDefineTable; }
-    auto getUsers() -> std::vector<std::unique_ptr<User>>& { return mUsers; }
-    auto getUsers() const -> const std::vector<std::unique_ptr<User>>& { return mUsers; }
-    auto getModuleType() const -> ModuleType { return mModuleType; }
+    [[nodiscard]] auto getParamDefineTable() -> ParamDefineTable& { return *mParamDefineTable; }
+    [[nodiscard]] auto getParamDefineTable() const -> const ParamDefineTable& { return *mParamDefineTable; }
+    [[nodiscard]] auto getUsers() -> std::vector<std::unique_ptr<User>>& { return mUsers; }
+    [[nodiscard]] auto getUsers() const -> const std::vector<std::unique_ptr<User>>& { return mUsers; }
+    [[nodiscard]] auto getModuleType() const -> ModuleType { return mModuleType; }
 
     auto load(std::span<const std::uint8_t> data, Game game, Platform platform = Platform::NX) -> void;
     auto load(std::string_view path, Game game, Platform platform = Platform::NX) -> void;
 
-    auto save(Game game, Platform platform = Platform::NX) const -> std::vector<std::uint8_t>;
+    [[nodiscard]] auto save(Game game, Platform platform = Platform::NX) const -> std::vector<std::uint8_t>;
     auto save(std::string_view path, Game game, Platform platform = Platform::NX) const -> void;
 
     auto parse(std::span<const char> text, ParseDataTag tag) -> void;
     auto parse(std::string_view path) -> void;
 
-    auto text(bool useBraces = true) const -> std::string;
+    [[nodiscard]] auto text(bool useBraces = true) const -> std::string;
     auto text(std::string_view path, bool useBraces = true) const -> void;
 
     auto reset() -> void;

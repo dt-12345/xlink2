@@ -12,16 +12,15 @@ enum class CurveType {
     Constant,
 };
 
+enum class CurveUpdateMode {
+    LocalVolatile,
+    LocalStable,
+    Global,
+};
+
 struct CurvePoint {
     float x, y;
 };
-
-constexpr auto operator<(const CurvePoint& lhs, const CurvePoint& rhs) -> bool {
-    if (lhs.x != rhs.x) {
-        return lhs.x < rhs.x;
-    }
-    return lhs.y < rhs.y;
-}
 
 class Curve {
 public:
@@ -33,8 +32,8 @@ public:
     auto setPropertyScope(PropertyScope scope) -> void;
     auto setProperty(const PropertyInfo& prop) -> void;
     auto setType(CurveType type) -> void { mType = type; }
-    auto setUnknown1(std::int32_t value) -> void { mUnknown1 = value; }
-    auto setUnknown2(std::int16_t value) -> void { mUnknown2 = value; }
+    auto setUnknown(std::int32_t value) -> void { mUnknown = value; }
+    auto setUpdateType(CurveUpdateMode value) -> void { mUpdateType = value; }
 
     [[nodiscard]] auto getPoints() -> std::vector<CurvePoint>& { return mPoints; }
     [[nodiscard]] auto getPoints() const -> const std::vector<CurvePoint>& { return mPoints; }
@@ -44,15 +43,15 @@ public:
     [[nodiscard]] auto getPropertyName() const -> std::string_view { return mProperty.name; }
     [[nodiscard]] auto getPropertyScope() const -> PropertyScope { return mProperty.scope; }
     [[nodiscard]] auto getType() const -> CurveType { return mType; }
-    [[nodiscard]] auto getUnknown1() const -> std::int32_t { return mUnknown1; }
-    [[nodiscard]] auto getUnknown2() const -> std::int16_t { return mUnknown2; }
+    [[nodiscard]] auto getUnknown() const -> std::int32_t { return mUnknown; }
+    [[nodiscard]] auto getUpdateType() const -> CurveUpdateMode { return mUpdateType; }
 
 private:
     std::vector<CurvePoint> mPoints = {};
     PropertyInfo mProperty          = {};
     CurveType mType                 = CurveType::Standard;
-    std::int32_t mUnknown1          = 0; // if this is < 0, the curve returns infinity
-    std::int16_t mUnknown2          = 0;
+    std::int32_t mUnknown           = 0; // if this is < 0, the curve returns infinity
+    CurveUpdateMode mUpdateType     = CurveUpdateMode::LocalVolatile;
 };
 
 /*

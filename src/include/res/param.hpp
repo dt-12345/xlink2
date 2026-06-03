@@ -23,6 +23,12 @@ enum class CurveType : std::uint16_t {
     Constant,
 };
 
+enum class CurveUpdateType : std::int16_t {
+    LocalVolatile   = 0,
+    LocalStable     = 1,
+    Global          = -1,
+};
+
 template <mango::Game GAME>
 struct ResCurve {
     std::uint16_t pointStartIndex;
@@ -30,9 +36,9 @@ struct ResCurve {
     CurveType type;
     std::uint16_t isGlobalProp;
     mango::PtrT<GAME> propNameOffset;
-    std::int32_t unknown1;
+    std::int32_t unknown;
     std::int16_t propIndex;
-    std::int16_t unknown2;
+    CurveUpdateType updateType;
 };
 static_assert(sizeof(ResCurve<mango::Game::Park>) == 0x14);
 static_assert(sizeof(ResCurve<mango::Game::EXKing>) == 0x18);
