@@ -526,7 +526,10 @@ Execute = Jump => SurpriseM[0x0d3388fe]
 ### Other Stuff I Need to Organize
 
 ```cpp
-// TODO: user bit flag
+// other bits are entirely ignored
+enum UserBitFlagSLink {
+  NotPositioned   = 1 << 0,
+};
 
 // TODO: the asset bit flags probably change by version (this is from totk)
 enum AssetBitFlagELink {
