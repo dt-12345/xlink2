@@ -567,13 +567,13 @@ enum ClipType {
 
 // TODO: check if these change by version (though probably not)
 enum MtxSetType {
-  IgnoreScale             = 0,  // scale only depends on the scale of the user
-  Normal                  = 1,
-  DefaultScale            = 2,
-  DefaultRot              = 3,
-  DefaultScaleRot         = 4,
-  DefaultRotLocalPos      = 5,
-  DefaultScaleRotLocalPos = 6,
+  IgnoreScale               = 0,  // scale only depends on the scale of the user
+  Normal                    = 1,
+  DefaultScale              = 2,
+  DefaultRot                = 3,
+  DefaultScaleRot           = 4,
+  DefaultRotRotatePos       = 5,
+  DefaultScaleRotRotatePos  = 6,
 };
 
 enum RotateSourceType {
