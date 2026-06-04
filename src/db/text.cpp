@@ -686,7 +686,7 @@ static auto WriteAssetCallTable(TextWriter& writer, const AssetCallTable& act, b
             for (const auto& child : act.getChildren()) {
                 const auto& cond = child->getCondition();
                 if (cond && cond->getType() == ConditionType::Sequence) {
-                    writer.writeLine("@ContinueOnFade = {}", static_cast<const SequenceCondition*>(cond.get())->getContinueOnFade());
+                    writer.writeLine("@ForceContinue = {}", static_cast<const SequenceCondition*>(cond.get())->getForceContinue());
                 }
                 WriteAssetCallTable(writer, *child, true);
             }

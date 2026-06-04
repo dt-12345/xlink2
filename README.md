@@ -257,7 +257,7 @@ Death_Burned[0x7b38f283] {
   }
 }
 ```
-`Death_Burned` is the key and `0x7b38f283` is the GUID. `EmitCount` controls the number of times the corresponding asset is played when this call table is triggered. `Oneshot` controls whether a given asset call table must be continuously requested in order to continue emitting (TODO: double check this). `NoPause` controls whether or not this specific asset call table is pauseable. `UserFlags` are an 8-bit, game-specific set of flags. For example, in *Tears of the Kingdom*, the second lowest bit of user flags is used to control whether the `_Miasma` variant of a sound should be played if applicable. `Execute` controls what this call table actually does (this example is an asset), see below for more details.
+`Death_Burned` is the key and `0x7b38f283` is the GUID. `EmitCount` controls the number of times the corresponding asset is played when this call table is triggered. `Oneshot` controls whether a given asset call table must be continuously requested in order to continue emitting (TODO: double check this). `NoPause` controls whether or not this specific asset call table is pauseable. `UserFlags` are an 8-bit, game-specific set of flags. For example, in *Tears of the Kingdom*, the second lowest bit of user flags is used to control whether the `_Miasma` variant of a sound should be played if applicable. `Execute` controls what this call table actually does (this example is an asset), see below for more details. A call table may require observation (`IsNeedObserve`) if any of it or any of its children fulfill at least one of the following: an emit count of -1 or a looping asset. If observation is required, the behavior of certain containers will change. `Switch`, `BlendBy`, and `Grid` containers will dynamically update the active child container(s) rather than selecting only when starting. `Sequence` containers will not automatically continue to the next container (see below for more details).
 
 ##### Assets
 
@@ -443,10 +443,12 @@ Execute = BlendBy (Local::"深さ(Rea)") {
 ```
 - Sequence
   - Plays each child call table in sequence
-    - `ContinueOnFade` controls whether or not the container should continue while the effect is fading
+    - `ForceContinue` is only used if the container needs observing (`IsNeedObserve = true`)
+      - If 0, then when this child completes, the sequence container is considered to have finished a single emission (of the total `EmitCount`)
+      - Otherwise, when this child completes, the sequence container will continue on to the next child instead
 ```
 Execute = Sequence {
-  @ContinueOnFade = 0
+  @ForceContinue = 0
   Blank[0x29e1f833] {
     EmitCount = 1
     Oneshot = false
@@ -462,7 +464,7 @@ Execute = Sequence {
       BitFlag = 0b1001
     }
   }
-  @ContinueOnFade = 1
+  @ForceContinue = 1
   onCalcSkipStart_Act_Carpenter_Carpenter_00[0x171321ed] {
     EmitCount = 1
     Oneshot = false
@@ -519,6 +521,7 @@ Execute = Grid (Local::武器振り方向に対するサイズ, Local::攻撃種
 ```
 - Jump (EXKing and above)
   - Jumps to another call table outside of the current container
+  - A jump container target cannot have >= 32 levels of child containers
 ```
 Execute = Jump => SurpriseM[0x0d3388fe]
 ```

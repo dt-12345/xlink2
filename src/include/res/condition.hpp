@@ -123,7 +123,7 @@ static_assert(sizeof(ResBlendByCondition<mango::Game::EXKing>) == 0x10);
 
 template <mango::Game GAME>
 struct ResSequenceCondition : public ResCondition<GAME> {
-    std::uint32_t continueOnFade;
+    std::uint32_t forceContinue;
 };
 static_assert(sizeof(ResSequenceCondition<mango::Game::EXKing>) == 8);
 

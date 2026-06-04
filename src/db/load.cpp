@@ -531,7 +531,7 @@ static auto ResolveParam(Param& param, LoadContext& ctx, const Param& def) -> vo
         case 1: {
             const auto type = ctx.reader.read<std::uint8_t>();
             const auto isBlendBy = ctx.reader.read<bool>();
-            ctx.reader.skip(2); // isNeedObserve set at runtime and padding
+            ctx.reader.skip(2); // maxCallStackDepthExceeded set at runtime and padding
             switch (type) {
                 case 0:
                     return CallTableType::Switch;
@@ -1034,7 +1034,7 @@ static auto ResolveSequenceCondition(
     }
     child->setCondition(std::make_unique<SequenceCondition>());
     auto seqCond = static_cast<SequenceCondition*>(child->getCondition().get());
-    seqCond->setContinueOnFade(ctx.reader.read<std::uint32_t>());
+    seqCond->setForceContinue(ctx.reader.read<std::uint32_t>());
 }
 
 static auto SetOrVerifyParent(AssetCallTableHandle& child, AssetCallTableHandle& parent) -> void {
@@ -1381,9 +1381,15 @@ static auto LoadUser(User& user, LoadContext& ctx, const ParamDefineTable& pdt) 
         ResolveParam(user.addParam(), ctx, pdt.getUserParam(i));
     }
 
+#ifdef XLINK_DEBUG
+    const auto assetIndices = ctx.reader.readArray<std::uint16_t>(numCallTable);
+    ctx.reader.alignUp(4);
+    fmt::println("{:#010x}", user.getHash());
+#else
     // sorted asset call table indices (we don't need to store these)
     ctx.reader.skip(sizeof(std::uint16_t) * numCallTable);
     ctx.reader.alignUp(4);
+#endif
 
     ctx.assetCallTableTablePos = ctx.reader.tell();
     ctx.containerTablePos = ctx.assetCallTableTablePos + SizeOf<xlink2::ResAssetCallTable>(ctx.game) * numCallTable;
@@ -1414,6 +1420,21 @@ static auto LoadUser(User& user, LoadContext& ctx, const ParamDefineTable& pdt) 
         auto active = std::unordered_set<std::uint32_t>{};
         ResolveAssetCallTable(act, ctx, callTables, callTableInfo, seen, active);
     }
+
+#ifdef XLINK_DEBUG
+    for (const auto id : assetIndices) {
+        if (static_cast<std::size_t>(id) >= callTables.size()) {
+            common::AbortWithDetail("Out-of-range asset index");
+        }
+        const auto& act = callTables.at(id);
+        if (act->getParent()) {
+            const auto& parent = act->getParent();
+            fmt::println("  {} {}[{:#010x}] ({}[{:#010x}])", id, act->getKeyName(), act->getGUID(), parent->getKeyName(), parent->getGUID());
+        } else {
+            fmt::println("  {} {}[{:#010x}] (<null>)", id, act->getKeyName(), act->getGUID());
+        }
+    }
+#endif
 
     ctx.reader.seek(ctx.actionSlotTablePos);
     for (const auto _ : std::views::iota(0u, numResActionSlot)) {

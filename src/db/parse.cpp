@@ -1697,8 +1697,8 @@ static auto ParseContainer(
         case CallTableType::Sequence: {
             auto scope = Scope(lexer, "Sequence");
             auto& seq = static_cast<Sequence&>(act);
-            auto foundContinueOnFade = false;
-            auto continueOnFade = 0u;
+            auto foundForceContinue = false;
+            auto forceContinue = 0u;
             while (scope) {
                 const auto token = scope.get();
                 std::string keyname;
@@ -1707,10 +1707,10 @@ static auto ParseContainer(
                 } else if (HasValue(token.type)) {
                     keyname = token.value;
                 } else if (token.type == Token::At) {
-                    if (const auto id = GetIdentifier(lexer); id == "ContinueOnFade") {
+                    if (const auto id = GetIdentifier(lexer); id == "ForceContinue") {
                         EnsureToken(lexer, Token::Assign);
-                        continueOnFade = GetUInt(lexer);
-                        foundContinueOnFade = true;
+                        forceContinue = GetUInt(lexer);
+                        foundForceContinue = true;
                         continue;
                     }
                     SyntaxError(lexer, token, "Failed to parse call table key");
@@ -1722,12 +1722,12 @@ static auto ParseContainer(
                 EnsureToken(lexer, Token::BracketClose);
                 if (auto res = ParseAssetCallTable(keyname, guid, lexer, callTables, deferred); res) {
                     seq.addChild(res);
-                    if (foundContinueOnFade) {
+                    if (foundForceContinue) {
                         auto cond = std::make_unique<SequenceCondition>();
-                        cond->setContinueOnFade(continueOnFade);
-                        continueOnFade = 0u;
+                        cond->setForceContinue(forceContinue);
+                        forceContinue = 0u;
                         res->setCondition(std::move(cond));
-                        foundContinueOnFade = false;
+                        foundForceContinue = false;
                     }
                 } else {
                     SyntaxError(lexer, token, "Sequence container children cannot be declared without a body! Use a jump container to jump if this is desired");

@@ -12,12 +12,12 @@ public:
 
     auto getType() const -> ConditionType override { return ConditionType::Sequence; }
 
-    auto setContinueOnFade(std::uint32_t value) -> void { mContinueOnFade = value; }
+    auto setForceContinue(std::uint32_t value) -> void { mForceContinue = value; }
 
-    [[nodiscard]] auto getContinueOnFade() const -> std::uint32_t { return mContinueOnFade; }
+    [[nodiscard]] auto getForceContinue() const -> std::uint32_t { return mForceContinue; }
 
 private:
-    std::uint32_t mContinueOnFade = 0u;
+    std::uint32_t mForceContinue = 0u;
 };
 
 } // namespace mango

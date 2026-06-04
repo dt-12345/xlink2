@@ -29,7 +29,7 @@ template <mango::Game GAME> requires (mango::GetResContainerParamLayout(GAME) ==
 struct alignas(mango::PtrT<GAME>) ResContainerParam<GAME> {
     common::SizedEnum<ContainerType, std::uint8_t> containerType;
     bool isBlendByProperty;
-    bool isNeedObserve;
+    bool maxCallStackDepthExceeded; // for jump containers: if call is >=32 deep, then this is set to true and the jump container does nothing
     std::int32_t childStartIndex;
     std::int32_t childEndIndex;
 };

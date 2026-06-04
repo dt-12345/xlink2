@@ -260,7 +260,7 @@ struct hash<reference_wrapper<const mango::ICondition>> {
                 break;
             }
             case mango::ConditionType::Sequence:
-                h = mango::detail::Combine(h, hash<std::uint32_t>{}(static_cast<const mango::SequenceCondition&>(value.get()).getContinueOnFade()));
+                h = mango::detail::Combine(h, hash<std::uint32_t>{}(static_cast<const mango::SequenceCondition&>(value.get()).getForceContinue()));
                 break;
             case mango::ConditionType::Grid:
             case mango::ConditionType::Jump:
@@ -412,7 +412,7 @@ auto operator==(const ICondition& lhs, const ICondition& rhs) -> bool {
                 && condA.getValueMin() == condB.getValueMin() && condA.getValueMax() == condB.getValueMax();
         }
         case ConditionType::Sequence:
-            return static_cast<const SequenceCondition&>(lhs).getContinueOnFade() == static_cast<const SequenceCondition&>(rhs).getContinueOnFade();
+            return static_cast<const SequenceCondition&>(lhs).getForceContinue() == static_cast<const SequenceCondition&>(rhs).getForceContinue();
         case ConditionType::Grid:
         case ConditionType::Jump:
             return true;
@@ -1961,7 +1961,7 @@ static auto SaveCondition(const ICondition& condition, SaveContext& ctx) -> void
             break;
         }
         case ConditionType::Sequence:
-            ctx.writer.write(static_cast<const SequenceCondition&>(condition).getContinueOnFade());
+            ctx.writer.write(static_cast<const SequenceCondition&>(condition).getForceContinue());
             break;
         case ConditionType::Grid:
         case ConditionType::Jump:
