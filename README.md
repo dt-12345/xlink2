@@ -10,14 +10,14 @@ Huge thanks to [Shadow](https://github.com/shadowninja108/WoomLink) whose resear
 
 ## Basic Usage
 
-```
+```sh
 xlink -i <input_file_path> -o <output_file_path>
 ```
 
 Note: for games other than *Tears of the Kingdom*, please specify the game with the `--game` argument.
 
 Running
-```
+```sh
 xlink --help
 ```
 will print a help message with more detailed usage information.
@@ -531,7 +531,7 @@ Execute = Jump => SurpriseM[0x0d3388fe]
 ```cpp
 // other bits are entirely ignored
 enum UserBitFlagSLink {
-  NotPositioned   = 1 << 0,
+  IsNoPos = 1 << 0,
 };
 
 // TODO: the asset bit flags probably change by version (this is from totk)
@@ -591,7 +591,7 @@ enum RotateSourceType {
 ## Building
 
 Requires CMake 3.18+ and gcc 16+
-```
+```sh
 cmake -B build -DCMAKE_BUILD_TYPE=Release # -G "Ninja" or whatever if you want
 cmake --build build
 ```
