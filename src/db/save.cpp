@@ -937,7 +937,7 @@ static auto ProcessUser(const User& user, SaveContext& ctx) -> void {
     auto& uctx = ctx.users.emplace(user.getHash(), UserContext{ std::cref(user) }).first->second;
     uctx.totalSize = SizeOf<xlink2::ResUserHeader>(ctx.game);
     for (const auto& prop : user.getLocalProperties()) {
-        ctx.getOrAddString(prop);
+        ctx.getOrAddLocalPropertyName(prop);
     }
     uctx.totalSize += ctx.getPtrSize() * user.getLocalProperties().size();
     for (const auto& param : user.getParams()) {
@@ -982,7 +982,11 @@ static auto ProcessUser(const User& user, SaveContext& ctx) -> void {
         }
     }
     for (const auto& prop : user.getProperties()) {
-        ctx.getOrAddString(prop.getName());
+        if (prop.getScope() == PropertyScope::Global) {
+            ctx.getOrAddString(prop.getName());
+        } else {
+            ctx.getOrAddLocalPropertyName(prop.getName());
+        }
         for (const auto& trigger : prop.getTriggers()) {
             ++uctx.numPropertyTriggers;
             ctx.getOrAddCondition(&trigger.getCondition());
