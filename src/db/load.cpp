@@ -307,9 +307,8 @@ auto ParamDefineTable::load(LoadContext& ctx) -> void {
 
 [[nodiscard]] static constexpr auto ConvertCurveUpdateType(xlink2::CurveUpdateType type) -> CurveUpdateMode {
     switch (type) {
-        case xlink2::CurveUpdateType::LocalVolatile: return CurveUpdateMode::LocalVolatile;
-        case xlink2::CurveUpdateType::LocalStable: return CurveUpdateMode::LocalStable;
-        case xlink2::CurveUpdateType::Global: return CurveUpdateMode::Global;
+        case xlink2::CurveUpdateType::Update: return CurveUpdateMode::Update;
+        case xlink2::CurveUpdateType::NoUpdate: return CurveUpdateMode::NoUpdate;
         default: common::AbortWithDetail("Unknown curve update type: {:#x}", std::to_underlying(type));
     }
 }
@@ -417,10 +416,11 @@ static auto ResolveParam(Param& param, LoadContext& ctx, const Param& def) -> vo
             curve->setPropertyScope(ctx.reader.read<std::uint16_t>() == 1 ? PropertyScope::Global : PropertyScope::Local);
             curve->setPropertyName(ctx.getString(ctx.readPtr()));
             curve->setUnknown(ctx.reader.read<std::int32_t>());
-            if (curve->getPropertyScope() == PropertyScope::Local && ctx.getLocalPropertyName(ctx.reader.read<std::int16_t>()) != curve->getPropertyName()) {
+            const auto localPropertyIndex = ctx.reader.read<std::int16_t>();
+            if (curve->getPropertyScope() == PropertyScope::Local && ctx.getLocalPropertyName(localPropertyIndex) != curve->getPropertyName()) {
                 common::AbortWithDetail(
                     "Curve property name does not match selected local property @ {:#x}!: \"{}\" vs. \"{}\"",
-                    ctx.reader.tell(), curve->getPropertyName(), ctx.getLocalPropertyName(ctx.reader.read<std::int16_t>())
+                    ctx.reader.tell(), curve->getPropertyName(), ctx.getLocalPropertyName(localPropertyIndex)
                 );
             }
             curve->setUpdateType(ConvertCurveUpdateType(ctx.reader.read<xlink2::CurveUpdateType>()));

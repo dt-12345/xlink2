@@ -13,9 +13,8 @@ enum class CurveType {
 };
 
 enum class CurveUpdateMode {
-    LocalVolatile,
-    LocalStable,
-    Global,
+    Update,
+    NoUpdate,
 };
 
 struct CurvePoint {
@@ -51,7 +50,7 @@ private:
     PropertyInfo mProperty          = {};
     CurveType mType                 = CurveType::Standard;
     std::int32_t mUnknown           = 0; // if this is < 0, the curve returns infinity
-    CurveUpdateMode mUpdateType     = CurveUpdateMode::LocalVolatile;
+    CurveUpdateMode mUpdateType     = CurveUpdateMode::Update;
 };
 
 /*

@@ -24,9 +24,8 @@ enum class CurveType : std::uint16_t {
 };
 
 enum class CurveUpdateType : std::int16_t {
-    LocalVolatile   = 0,
-    LocalStable     = 1,
-    Global          = -1,
+    Update      = 0,
+    NoUpdate    = 1,
 };
 
 template <mango::Game GAME>

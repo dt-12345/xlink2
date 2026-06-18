@@ -1310,9 +1310,8 @@ static auto SaveUserParams(const std::vector<Param>& params, SaveContext& ctx, c
 
 [[nodiscard]] static auto ConvertCurveUpdateMode(CurveUpdateMode mode) -> xlink2::CurveUpdateType {
     switch (mode) {
-        case CurveUpdateMode::LocalVolatile: return xlink2::CurveUpdateType::LocalVolatile;
-        case CurveUpdateMode::LocalStable: return xlink2::CurveUpdateType::LocalStable;
-        case CurveUpdateMode::Global: return xlink2::CurveUpdateType::Global;
+        case CurveUpdateMode::Update: return xlink2::CurveUpdateType::Update;
+        case CurveUpdateMode::NoUpdate: return xlink2::CurveUpdateType::NoUpdate;
         default:
             common::AbortWithDetail("Invalid curve update type");
     }
